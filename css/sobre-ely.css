@@ -1,0 +1,304 @@
+/* Sobre Ely — Figma 27:14191 (desktop 1440) y 27:14256 (mobile 390) */
+
+/* ---------- 01 Hero ---------- */
+.about-hero {
+  padding-top: var(--spacing-64);
+  padding-bottom: var(--spacing-96);
+}
+.about-hero__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-80);
+}
+.about-hero__portrait {
+  width: 520px;
+  aspect-ratio: 4 / 5;
+  flex-shrink: 0;
+  background: var(--color-background-warm);
+}
+.about-hero__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-24);
+}
+.about-hero__headline {
+  max-width: 620px;
+  color: var(--color-text-primary);
+}
+.about-hero__body {
+  max-width: 600px;
+}
+
+/* ---------- 02 Mi historia ---------- */
+.story {
+  padding-top: var(--spacing-48);
+}
+.story__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+}
+.story__heading {
+  width: 480px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.story__title {
+  color: var(--color-text-primary);
+}
+.story__body {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ---------- 03 Filosofía ---------- */
+.philosophy__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-64);
+}
+.philosophy__quote {
+  max-width: 960px;
+  margin: 0;
+  text-align: center;
+  color: var(--color-text-primary);
+}
+.principles {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-40);
+  width: 100%;
+}
+.principle {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding-top: var(--spacing-24);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.principle__title {
+  color: var(--color-text-primary);
+}
+
+/* ---------- 04 Experiencia ---------- */
+.experience__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-40);
+}
+.fact {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.fact__value {
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+/* ---------- 05 Detrás de cámaras ---------- */
+.bts {
+  padding-top: var(--spacing-48);
+}
+.bts__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+}
+.bts__photos {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-40);
+}
+.bts__photo {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--color-background-warm);
+}
+.bts__photo--studio {
+  aspect-ratio: 3 / 2;
+}
+.bts__photo--bts {
+  aspect-ratio: 4 / 5;
+}
+
+/* ---------- 06 CTA ---------- */
+.about-cta__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-24);
+  text-align: center;
+}
+.about-cta__title {
+  color: var(--color-text-primary);
+}
+.about-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-16);
+}
+
+/* ---------- Desktop fluido ---------- */
+@media (max-width: 1279px) {
+  .about-hero__inner,
+  .story__inner {
+    gap: var(--spacing-64);
+  }
+  .about-hero__portrait {
+    width: 40%;
+  }
+  .story__heading {
+    width: 36%;
+  }
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1023px) {
+  .about-hero__inner,
+  .story__inner {
+    gap: var(--spacing-40);
+  }
+  .about-hero__portrait {
+    width: 42%;
+  }
+  .story__inner {
+    flex-direction: column;
+    gap: var(--spacing-24);
+  }
+  .story__heading {
+    width: 100%;
+  }
+  .principles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-40);
+  }
+  .experience__inner {
+    gap: var(--spacing-24);
+  }
+  .fact__value {
+    white-space: normal;
+  }
+  .bts__photos {
+    gap: var(--spacing-24);
+  }
+}
+
+/* ---------- Mobile (Figma 390) ---------- */
+@media (max-width: 767px) {
+  /* 01 Hero: retrato a sangre y texto debajo, sin separación entre bloques */
+  .about-hero {
+    padding: 0 0 var(--layout-section);
+  }
+  .about-hero__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .about-hero__portrait {
+    width: 100%;
+  }
+  .about-hero__text {
+    gap: 0;
+    padding: var(--spacing-24) var(--layout-padding) 0;
+  }
+  .about-hero__cta {
+    width: 100%;
+  }
+
+  /* 02 Mi historia */
+  .story {
+    padding-top: var(--spacing-24);
+  }
+  .story__inner {
+    gap: var(--spacing-12);
+  }
+  .story__heading {
+    gap: var(--spacing-8);
+  }
+  .story__title.t-h2 {
+    font-size: 26px;
+    line-height: 34px;
+  }
+  .story__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-12);
+  }
+
+  /* 03 Filosofía */
+  .philosophy__inner {
+    align-items: stretch;
+    gap: var(--spacing-32);
+  }
+  .philosophy__quote {
+    text-align: left;
+  }
+  .philosophy__quote .t-display-md {
+    font-size: 30px;
+    line-height: 38px;
+    letter-spacing: 0;
+  }
+  .principles {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-32);
+  }
+  .principle {
+    width: 100%;
+    gap: var(--spacing-8);
+    padding-top: 0;
+  }
+
+  /* 04 Experiencia */
+  .experience__inner {
+    flex-direction: column;
+    gap: var(--spacing-24);
+  }
+  .fact {
+    width: 100%;
+    gap: var(--spacing-4);
+  }
+
+  /* 05 Detrás de cámaras */
+  .bts {
+    padding-top: var(--spacing-24);
+  }
+  .bts__inner {
+    gap: var(--spacing-32);
+  }
+  .bts__photos {
+    flex-direction: column;
+    gap: var(--spacing-16);
+  }
+  .bts__photo {
+    flex: none;
+    width: 100%;
+  }
+
+  /* 06 CTA: alineado a la izquierda, botones a todo el ancho */
+  .about-cta__inner {
+    align-items: stretch;
+    gap: var(--spacing-16);
+    text-align: left;
+  }
+  .about-cta__actions {
+    flex-direction: column;
+    gap: var(--spacing-16);
+  }
+  .about-cta__actions .btn {
+    width: 100%;
+  }
+}

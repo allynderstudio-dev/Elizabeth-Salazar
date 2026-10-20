@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Galería · Ely Salazar</title>
+  <meta name="description" content="Algunas de las historias que hemos fotografiado en el estudio y en exteriores: embarazos, bebés, cumpleaños, familias y celebraciones.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_VE">
+  <meta property="og:site_name" content="Ely Salazar Photography">
+  <meta property="og:title" content="Galería · Ely Salazar">
+  <meta property="og:description" content="Algunas de las historias que hemos fotografiado en el estudio y en exteriores: embarazos, bebés, cumpleaños, familias y celebraciones.">
+  <meta property="og:image" content="assets/images/galeria/emb-silk.jpg">
+  <meta name="theme-color" content="#f5f3ef">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="assets/fonts/Bitter-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/Montserrat-500-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/galeria.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <!-- partial:header -->
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand-logo" href="index.html" aria-label="Ely Salazar — Inicio">
+        <img src="assets/logos/logo.svg" alt="" width="112" height="32">
+      </a>
+      <nav class="site-nav" aria-label="Principal">
+        <ul class="site-nav__list">
+          <li><a class="nav-link" href="servicios.html">Sesiones</a></li>
+          <li><a class="nav-link" href="temporada.html">Temporada</a></li>
+          <li><a class="nav-link" href="galeria.html">Galería</a></li>
+          <li><a class="nav-link" href="sobre-ely.html">Sobre Ely</a></li>
+        </ul>
+        <a class="btn btn--primary" href="reservar.html">Reservar</a>
+      </nav>
+      <button class="icon-btn menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu-movil">
+        <img src="assets/icons/menu.svg" alt="" width="24" height="24">
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="menu-movil" aria-label="Menú" inert>
+    <ul class="mobile-menu__list">
+      <li><a class="nav-link" href="index.html">Inicio</a></li>
+      <li><a class="nav-link" href="servicios.html">Sesiones</a></li>
+      <li><a class="nav-link" href="temporada.html">Temporada</a></li>
+      <li><a class="nav-link" href="galeria.html">Galería</a></li>
+      <li><a class="nav-link" href="sobre-ely.html">Sobre Ely</a></li>
+    </ul>
+    <a class="btn btn--primary" href="reservar.html">Reservar</a>
+  </div>
+  <!-- /partial:header -->
+
+  <main id="contenido">
+    <!-- 01 Hero: título + filtros por categoría -->
+    <section class="galeria-hero" aria-labelledby="galeria-titulo">
+      <div class="container galeria-hero__inner">
+        <div class="galeria-hero__copy">
+          <div class="galeria-hero__titles">
+            <p class="t-eyebrow">Galería</p>
+            <h1 class="t-display-lg galeria-hero__title" id="galeria-titulo">Historias que ya se quedaron para siempre.</h1>
+          </div>
+          <p class="t-body-lg galeria-hero__body">Algunas de las historias que hemos fotografiado en el estudio y en exteriores: embarazos, bebés, cumpleaños, familias y celebraciones.</p>
+        </div>
+        <div class="galeria-filtros">
+          <div class="filter-chips galeria-filtros__lista" role="group" aria-label="Filtrar fotos por categoría">
+              <button class="filter-chip" type="button" data-categoria="todas" aria-pressed="true" aria-controls="galeria-grid">Todas</button>
+              <button class="filter-chip" type="button" data-categoria="embarazo" aria-pressed="false" aria-controls="galeria-grid">Embarazo</button>
+              <button class="filter-chip" type="button" data-categoria="newborn" aria-pressed="false" aria-controls="galeria-grid">Newborn</button>
+              <button class="filter-chip" type="button" data-categoria="bebes" aria-pressed="false" aria-controls="galeria-grid">Bebés</button>
+              <button class="filter-chip" type="button" data-categoria="cumpleanos" aria-pressed="false" aria-controls="galeria-grid">Cumpleaños</button>
+              <button class="filter-chip" type="button" data-categoria="familia" aria-pressed="false" aria-controls="galeria-grid">Familia</button>
+              <button class="filter-chip" type="button" data-categoria="parejas" aria-pressed="false" aria-controls="galeria-grid">Parejas</button>
+              <button class="filter-chip" type="button" data-categoria="quince-anos" aria-pressed="false" aria-controls="galeria-grid">Quince años</button>
+              <button class="filter-chip" type="button" data-categoria="eventos" aria-pressed="false" aria-controls="galeria-grid">Eventos</button>
+              <button class="filter-chip" type="button" data-categoria="fotografia-comercial" aria-pressed="false" aria-controls="galeria-grid">Fotografía comercial</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 Gallery grid: una proporción por fila -->
+    <section class="galeria-grid-section" aria-label="Fotos de la galería">
+      <div class="container">
+        <p class="visually-hidden" role="status" aria-live="polite" data-galeria-estado></p>
+        <div class="galeria-grid" id="galeria-grid">
+          <!-- Fila 1 · 4:5 -->
+          <div class="galeria-fila galeria-fila--45">
+            <figure class="galeria-card galeria-card--ancha" data-categorias="embarazo" style="--om: 1; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/emb-silk.jpg" alt="Mujer embarazada suspendida en una tela de seda blanca, reflejada sobre el piso" width="953" height="926" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Embarazo</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="newborn" style="--om: 2; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/nb-basket.jpg" alt="Recién nacida dormida con un gorro de encaje blanco entre rosas" width="1001" height="976" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Newborn</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="bebes" style="--om: 3; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/mm-bear.jpg" alt="Bebé sonriente con un gorro tejido con orejitas de oso" width="1600" height="1578" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Bebés</figcaption>
+            </figure>
+          </div>
+          <!-- Fila 2 · 3:2 -->
+          <div class="galeria-fila galeria-fila--32">
+            <figure class="galeria-card galeria-card--ancha" data-categorias="familia" style="--om: 4; --arm: 3/2;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/fa-baby.jpg" style="object-position: 60% 50%;" alt="Pareja sonriente junto a su hija pequeña sobre un fondo rosado" width="1600" height="746" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Familia</figcaption>
+            </figure>
+            <figure class="galeria-card galeria-card--ancha" data-categorias="eventos" style="--om: 10; --arm: 3/2;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/rv-balloons.jpg" alt="Pareja abrazada junto a globos azules y rosados y un oso de peluche" width="1600" height="1357" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Revelación de sexo</figcaption>
+            </figure>
+          </div>
+          <!-- Fila 3 · 2:3 -->
+          <div class="galeria-fila galeria-fila--23">
+            <figure class="galeria-card" data-categorias="cumpleanos" style="--om: 5; --arm: 2/3;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/cu-swing.jpg" style="object-position: 50% 30%;" alt="Niña con vestido rojo sentada en un columpio decorado con rosas rojas" width="572" height="1348" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Cumpleaños</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="quince-anos" style="--om: 6; --arm: 2/3;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/qu-red.jpg" alt="Quinceañera con un vestido rojo largo en un jardín" width="607" height="775" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Quince años</figcaption>
+            </figure>
+            <figure class="galeria-card galeria-card--ancha" data-categorias="embarazo" data-extra="movil" style="--om: 17; --arm: 4/5; --of: 1;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/emb-jeans.jpg" style="object-position: 50% 10%;" alt="Mujer embarazada con jeans sosteniendo un ramo de flores sobre fondo oscuro" width="560" height="1414" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Embarazo</figcaption>
+            </figure>
+          </div>
+          <!-- Fila 4 · 4:5 -->
+          <div class="galeria-fila galeria-fila--45">
+            <figure class="galeria-card galeria-card--ancha" data-categorias="cumpleanos" style="--om: 7; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/ca-balloons.jpg" alt="Mujer celebrando su cumpleaños con globos plateados" width="1450" height="1600" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Cumpleaños</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="parejas" style="--om: 8; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/pa-cover.jpg" alt="Pareja vestida de blanco riendo mientras él la carga en el estudio" width="1191" height="1111" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Parejas</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="fotografia-comercial" style="--om: 9; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/py-portrait.jpg" alt="Retrato de una mujer aplicándose labial sobre fondo claro" width="1488" height="1368" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Fotografía comercial</figcaption>
+            </figure>
+          </div>
+          <!-- Fila 5 · 3:2 -->
+          <div class="galeria-fila galeria-fila--32">
+            <figure class="galeria-card galeria-card--ancha" data-categorias="eventos" data-extra="movil" style="--om: 11; --arm: 3/2;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/rc-garden.jpg" alt="Decoración de recepción en un jardín con arcos de globos rosados y mesas servidas" width="567" height="576" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Eventos</figcaption>
+            </figure>
+            <figure class="galeria-card galeria-card--ancha" data-categorias="quince-anos eventos" data-extra="movil" style="--om: 14; --arm: 3/2;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/quince-family.jpg" alt="Quinceañera con corona recibiendo un beso de sus padres" width="792" height="497" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Recepción de quince años</figcaption>
+            </figure>
+          </div>
+          <!-- Fila 6 · 4:5 -->
+          <div class="galeria-fila galeria-fila--45">
+            <figure class="galeria-card" data-categorias="newborn" data-extra="movil" style="--om: 12; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/nb-moon.jpg" alt="Recién nacido dormido con un gorro azul tejido sobre una canasta" width="1071" height="960" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Newborn</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="bebes" data-extra="movil" style="--om: 13; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/mesames-crown.jpg" style="object-position: 50% 40%;" alt="Bebé con una corona de flores rosadas y blancas" width="1096" height="1431" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Bebés</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="familia" data-extra="movil" style="--om: 15; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/fa-cover.jpg" alt="Familia vestida de negro posando sobre un fondo blanco" width="1600" height="1538" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Familia</figcaption>
+            </figure>
+          </div>
+          <!-- Más fotos · 4:5 (se muestran con «Ver más fotos») -->
+          <div class="galeria-fila galeria-fila--45 galeria-fila--extra">
+            <figure class="galeria-card" data-categorias="embarazo" data-extra="todas" style="--om: 16; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/emb-hero.jpg" alt="Mujer embarazada con camisa blanca abierta y jeans, sentada y sonriendo" width="834" height="948" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Embarazo</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="embarazo" data-extra="todas" data-descripcion="Embarazo · sesión en estudio." style="--om: 18; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/emb-flowers.jpg" style="object-position: 50% 20%;" alt="Mujer embarazada con jeans sosteniendo un ramo de hortensias azules y flores blancas" width="631" height="1027" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Embarazo</figcaption>
+            </figure>
+            <figure class="galeria-card" data-categorias="embarazo" data-extra="todas" style="--om: 19; --arm: 4/5;">
+              <button class="galeria-card__media" type="button" aria-haspopup="dialog">
+                <span class="photo"><img src="assets/images/galeria/emb-bathroom.jpg" style="object-position: 50% 45%;" alt="Mujer embarazada con un body de encaje blanco recostada entre pétalos de rosas rojas" width="512" height="1094" loading="lazy" decoding="async"></span>
+                <span class="galeria-card__scrim" aria-hidden="true"></span>
+                <span class="galeria-card__expand" aria-hidden="true"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></span>
+              </button>
+              <figcaption class="t-body-sm">Embarazo</figcaption>
+            </figure>
+          </div>
+
+        </div>
+        <div class="galeria-mas">
+          <button class="btn btn--secondary galeria-mas__btn" type="button" aria-controls="galeria-grid" data-galeria-mas>Ver más fotos</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 Booking CTA -->
+    <section class="section section--warm galeria-cta" aria-labelledby="galeria-cta-titulo">
+      <div class="container galeria-cta__inner">
+        <h2 class="t-h1 galeria-cta__title" id="galeria-cta-titulo">¿Te gustaría una sesión así?</h2>
+        <p class="t-body-lg">Elige tu sesión y reserva tu fecha. Se confirma con el abono del 50%.</p>
+        <a class="btn btn--primary galeria-cta__btn" href="reservar.html">Reserva tu sesión</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Lightbox: visor de fotos (diálogo accesible) -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Visor de fotos" hidden>
+    <div class="lightbox__top">
+      <p class="t-label lightbox__counter" data-lb-contador aria-live="polite"></p>
+      <button class="icon-btn icon-btn--outline lightbox__btn" type="button" aria-label="Cerrar" data-lb="cerrar"><img src="assets/icons/close-inverse.svg" alt="" width="24" height="24"></button>
+    </div>
+    <div class="lightbox__stage">
+      <button class="icon-btn icon-btn--outline lightbox__btn lightbox__nav-desktop" type="button" aria-label="Foto anterior" data-lb="anterior"><img src="assets/icons/chevron-left-inverse.svg" alt="" width="24" height="24"></button>
+      <figure class="lightbox__figure">
+        <img class="lightbox__img" src="data:," alt="" data-lb-img>
+      </figure>
+      <button class="icon-btn icon-btn--outline lightbox__btn lightbox__nav-desktop" type="button" aria-label="Foto siguiente" data-lb="siguiente"><img src="assets/icons/chevron-right-inverse.svg" alt="" width="24" height="24"></button>
+    </div>
+    <div class="lightbox__bottom">
+      <p class="t-body-sm lightbox__caption" data-lb-caption></p>
+      <div class="lightbox__controls">
+        <button class="icon-btn icon-btn--outline lightbox__btn" type="button" aria-label="Foto anterior" data-lb="anterior"><img src="assets/icons/chevron-left-inverse.svg" alt="" width="24" height="24"></button>
+        <button class="icon-btn icon-btn--outline lightbox__btn" type="button" aria-label="Foto siguiente" data-lb="siguiente"><img src="assets/icons/chevron-right-inverse.svg" alt="" width="24" height="24"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- partial:footer -->
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__columns">
+        <div class="site-footer__brand">
+          <a class="brand-logo" href="index.html" aria-label="Ely Salazar — Inicio">
+            <img src="assets/logos/logo-inverse.svg" alt="" width="112" height="32" loading="lazy">
+          </a>
+          <p class="site-footer__tagline">Fotografía en Táriba, Táchira, Venezuela.</p>
+          <a class="btn btn--secondary btn--on-dark" href="reservar.html">Reservar sesión</a>
+        </div>
+        <nav class="footer-col" aria-labelledby="footer-nav-title">
+          <p class="t-eyebrow footer-col__title" id="footer-nav-title">Navegación</p>
+          <ul>
+            <li><a class="nav-link" href="index.html">Inicio</a></li>
+            <li><a class="nav-link" href="servicios.html">Sesiones</a></li>
+            <li><a class="nav-link" href="temporada.html">Temporada</a></li>
+            <li><a class="nav-link" href="galeria.html">Galería</a></li>
+            <li><a class="nav-link" href="sobre-ely.html">Sobre Ely</a></li>
+            <li><a class="nav-link" href="preguntas-y-politicas.html">Políticas de reserva</a></li>
+          </ul>
+        </nav>
+        <nav class="footer-col" aria-labelledby="footer-sesiones-title">
+          <p class="t-eyebrow footer-col__title" id="footer-sesiones-title">Sesiones</p>
+          <ul>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=embarazo">Embarazo</a></li>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=newborn">Newborn</a></li>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=cumpleanos-infantiles">Cumpleaños</a></li>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=familiar">Familiar</a></li>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=quince-anos">Quince años</a></li>
+            <li><a class="nav-link" href="servicios.html">Ver todas las sesiones</a></li>
+          </ul>
+        </nav>
+        <div class="footer-col">
+          <p class="t-eyebrow footer-col__title">Contacto</p>
+          <ul>
+            <li><a class="contact-link" data-whatsapp href="https://wa.me/584266463929" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp, se abre en otra app"><img src="assets/icons/whatsapp-inverse.svg" alt="" width="20" height="20" loading="lazy"><span>+58 426 646 3929</span></a></li>
+            <li><a class="contact-link" href="https://www.instagram.com/elysalazar_/" target="_blank" rel="noopener" aria-label="Instagram @elysalazar_, se abre en otra pestaña"><img src="assets/icons/instagram-inverse.svg" alt="" width="20" height="20" loading="lazy"><span>@elysalazar_</span></a></li>
+            <li><p class="contact-link"><img src="assets/icons/map-pin-inverse.svg" alt="" width="20" height="20" loading="lazy">Táriba, Táchira, Venezuela</p></li>
+            <li><p class="contact-link"><img src="assets/icons/calendar-inverse.svg" alt="" width="20" height="20" loading="lazy">Sesiones de lunes a sábado</p></li>
+          </ul>
+        </div>
+      </div>
+      <hr class="site-footer__divider">
+      <div class="site-footer__legal">
+        <p>© <span data-year>2026</span> Ely Salazar. Todos los derechos reservados.</p>
+        <p>Diseñado y desarrollado por&nbsp;<a href="https://allynder.com" target="_blank" rel="noopener">Allynder Studio</a></p>
+      </div>
+    </div>
+  </footer>
+  <!-- /partial:footer -->
+
+  <script src="js/navigation.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/gallery.js" defer></script>
+</body>
+</html>

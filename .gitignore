@@ -1,0 +1,9 @@
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Configuración local del editor/agente
+.claude/
+
+# Vercel
+.vercel/

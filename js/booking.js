@@ -1,0 +1,1085 @@
+// Reservar: flujo de 5 pasos + pantalla final.
+// Navegación con historial (?paso=N), validación, formularios condicionales por servicio,
+// abono del 50 %, resumen, barra de acciones sticky y borrador en sessionStorage.
+// Honestidad: sin endpoints configurados (BOOKING_CONFIG) no se muestra disponibilidad
+// real ni se dice que la solicitud quedó registrada; se completa por WhatsApp.
+(() => {
+  const CFG = window.BOOKING_CONFIG;
+  const DATA = window.BOOKING_DATA;
+  const form = document.getElementById('reserva');
+  if (!CFG || !DATA || !form) return;
+
+  const LIVE_AVAILABILITY = Boolean(CFG.availabilityEndpoint);
+  const LIVE_BOOKING = Boolean(CFG.bookingEndpoint);
+
+  const $ = (sel, root = form) => root.querySelector(sel);
+  const $$ = (sel, root = form) => [...root.querySelectorAll(sel)];
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = (n) => `US$${Math.round(n * 100) / 100}`;
+  const deposit = (n) => n * CFG.depositRate;
+  const normalize = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  /* ---------- Textos ---------- */
+  const STEPS = [
+    { name: 'Sesión', title: 'Elige tu sesión', subtitle: () => 'Selecciona el tipo de sesión que quieres reservar.' },
+    { name: 'Paquete', title: 'Selecciona tu paquete', subtitle: (s) => `${s ? s.name : ''} · Elige el paquete que mejor se adapte a ti.` },
+    { name: 'Fecha y hora', title: 'Elige la fecha y la hora', subtitle: () => 'Sesiones de lunes a sábado, en hora de Venezuela (UTC−4).' },
+    { name: 'Detalles y contacto', title: 'Detalles y contacto', subtitle: (s) => `Unas preguntas para preparar ${s ? s.phrase : 'tu sesión'} y tus datos para coordinarla.` },
+    { name: 'Revisión', title: 'Revisa tu solicitud', subtitle: () => 'Confirma que todo esté bien antes de enviarla. Tu sesión se confirma después del abono del 50%.' },
+  ];
+
+  // Copias que dependen de si hay backend. "live" = texto exacto de Figma.
+  // "manual" = ajuste mínimo para no afirmar que la solicitud quedó registrada.
+  const COPY = {
+    live: {
+      submit: 'Enviar solicitud de reserva',
+      notice: 'Al enviar tu solicitud, tu horario queda reservado provisionalmente durante 24 horas. Para confirmar tu sesión, debes realizar el abono del 50% del valor total.',
+      after1: 'Recibimos tu solicitud y apartamos tu horario durante 24 horas.',
+      after2: (d) => `Realizas el abono de ${d} (50%) y lo coordinas con Ely por WhatsApp.`,
+      successTitle: 'Recibimos tu solicitud',
+      successSubtitle: 'Tu horario estará reservado provisionalmente durante 24 horas. Para confirmar tu sesión, debes realizar el abono del 50%.',
+      badge: 'Pendiente de abono',
+      statusTitle: 'Falta tu abono del 50%',
+      statusText: 'Tu solicitud quedó registrada, pero aún no es una reserva confirmada.',
+      next1: (d) => `Realiza el abono de ${d} (50%) en las próximas 24 horas.`,
+      timeLegend: 'Horarios disponibles',
+      timeNote: 'Cada sesión dura alrededor de 2 horas. Los horarios tachados ya no están disponibles.',
+    },
+    manual: {
+      submit: 'Preparar solicitud por WhatsApp',
+      notice: 'Ely te confirmará por WhatsApp si tu horario está disponible. Para confirmar tu sesión, debes realizar el abono del 50% del valor total.',
+      after1: 'Envías tu solicitud por WhatsApp y Ely confirma si tu horario está disponible.',
+      after2: (d) => `Realizas el abono de ${d} (50%) y lo coordinas con Ely por WhatsApp.`,
+      successTitle: 'Tu solicitud está lista',
+      successSubtitle: 'Envíala por WhatsApp para que Ely confirme tu horario. Para confirmar tu sesión, debes realizar el abono del 50%.',
+      badge: 'Pendiente de envío',
+      statusTitle: 'Envía tu solicitud por WhatsApp',
+      statusText: 'Aún no está registrada ni es una reserva confirmada; se completa al enviar el mensaje.',
+      next1: (d) => `Envía el mensaje por WhatsApp y realiza el abono de ${d} (50%) en las próximas 24 horas.`,
+      timeLegend: 'Elige tu horario preferido',
+      timeNote: 'Cada sesión dura alrededor de 2 horas. Ely confirmará la disponibilidad por WhatsApp.',
+    },
+  };
+  const T = LIVE_BOOKING ? COPY.live : COPY.manual;
+  const TA = LIVE_AVAILABILITY ? COPY.live : COPY.manual;
+
+  const ERR = {
+    required: 'Este campo es obligatorio',
+    service: 'Elige una sesión para continuar.',
+    package: 'Elige un paquete para continuar.',
+    date: 'Elige una fecha para continuar.',
+    time: 'Elige un horario para continuar.',
+    phone: 'Ingresa un número de WhatsApp válido (10 dígitos).',
+    consent: 'Debes aceptar las políticas de reserva para continuar',
+    dateFuture: 'Elige una fecha a partir de hoy.',
+    datePast: 'La fecha no puede ser posterior a hoy.',
+    submit: 'No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos por WhatsApp.',
+  };
+
+  /* ---------- Fechas (hora de Venezuela) ---------- */
+  const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const pad = (n) => String(n).padStart(2, '0');
+  const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+  const parseIso = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+  const isoFromDate = (dt) => iso(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+  const addDays = (s, n) => { const dt = parseIso(s); dt.setUTCDate(dt.getUTCDate() + n); return isoFromDate(dt); };
+  const todayIso = () => new Intl.DateTimeFormat('en-CA', { timeZone: CFG.timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const longDate = (s, withYear = true) => {
+    const dt = parseIso(s);
+    return `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} de ${MONTHS[dt.getUTCMonth()]}${withYear ? ` de ${dt.getUTCFullYear()}` : ''}`;
+  };
+  const shortDate = (s) => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+  const TODAY = todayIso();
+  const MIN_DATE = addDays(TODAY, CFG.minDaysAhead);
+  const monthKey = (s) => s.slice(0, 7);
+  const addMonths = (key, n) => { const [y, m] = key.split('-').map(Number); const dt = new Date(Date.UTC(y, m - 1 + n, 1)); return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}`; };
+  const MIN_MONTH = monthKey(MIN_DATE);
+  const MAX_MONTH = addMonths(MIN_MONTH, CFG.maxMonthsAhead);
+  const timeLabel = (v) => (CFG.startTimes.find((t) => t.value === v) || {}).label || v;
+
+  /* ---------- Estado + borrador ---------- */
+  const blank = () => ({
+    step: 1, category: 'todas', service: null, pkg: null, date: null, time: null,
+    viewMonth: null, details: {}, name: '', code: CFG.defaultCountryCode, phone: '', consent: false,
+  });
+  let state = blank();
+  const touched = new Set();
+
+  const store = {
+    load() { try { return JSON.parse(sessionStorage.getItem(CFG.storageKey) || 'null'); } catch (e) { return null; } },
+    save() { try { sessionStorage.setItem(CFG.storageKey, JSON.stringify(state)); } catch (e) { /* almacenamiento no disponible */ } },
+    clear() { try { sessionStorage.removeItem(CFG.storageKey); } catch (e) { /* sin acceso */ } },
+  };
+
+  const getService = () => DATA.SERVICES.find((s) => s.slug === state.service) || null;
+  const getPackage = () => { const s = getService(); return s ? s.packages.find((p) => p.slug === state.pkg) || null : null; };
+  const findPackage = (service, param) => {
+    const n = normalize(param);
+    return service.packages.find((p) => p.slug === n || normalize(p.name) === n) || null;
+  };
+
+  /* ---------- Adaptadores de disponibilidad y reserva (Cal.com, fase futura) ---------- */
+  const availabilityCache = new Map();
+
+  // Devuelve { 'AAAA-MM-DD': ['08:00', ...] } con SOLO horarios libres, o null si no hay API.
+  // TODO(Cal.com): mapear la respuesta real de Cal.com (/slots) a este formato.
+  async function fetchAvailability(month) {
+    if (!LIVE_AVAILABILITY) return null;
+    const key = `${state.service}|${state.pkg}|${month}`;
+    if (availabilityCache.has(key)) return availabilityCache.get(key);
+    const url = new URL(CFG.availabilityEndpoint, location.href);
+    url.searchParams.set('servicio', state.service || '');
+    url.searchParams.set('paquete', state.pkg || '');
+    url.searchParams.set('mes', month);
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`Disponibilidad: ${res.status}`);
+    const json = await res.json();
+    const days = (json && json.dias) || {};
+    availabilityCache.set(key, days);
+    return days;
+  }
+
+  // Cuerpo que se enviaría al endpoint de reservas. Sin correo electrónico.
+  function buildBookingPayload() {
+    const s = getService();
+    const p = getPackage();
+    return {
+      servicio: s.slug, paquete: p.slug, precio: p.price, abono: deposit(p.price),
+      fecha: state.date, hora: state.time, zonaHoraria: CFG.timezone,
+      nombre: state.name.trim(), whatsapp: `${state.code}${digits(state.phone)}`,
+      detalles: detailEntries().reduce((o, [label, value]) => ({ ...o, [label]: value }), {}),
+    };
+  }
+
+  // TODO(Cal.com): crear la reserva provisional (24 h) y devolver su id/estado.
+  async function submitBooking(payload) {
+    const res = await fetch(CFG.bookingEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`Reserva: ${res.status}`);
+    return res.json();
+  }
+
+  /* ---------- Paso 1 · Sesiones ---------- */
+  const chipsEl = $('[data-filter-chips]');
+  const servicesEl = $('[data-service-options]');
+
+  chipsEl.innerHTML = DATA.CATEGORIES.map((c) =>
+    `<button class="filter-chip" type="button" aria-pressed="false" data-category="${c.slug}">${esc(c.label)}</button>`).join('');
+
+  servicesEl.innerHTML = DATA.SERVICES.map((s) => {
+    const min = Math.min(...s.packages.map((p) => p.price));
+    const n = s.packages.length;
+    const meta = `${n > 1 ? 'desde ' : ''}${money(min)} · ${n} ${n === 1 ? 'paquete' : 'paquetes'}`;
+    return `<label class="service-option" data-category="${s.category}">
+      <input class="visually-hidden" type="radio" name="sesion" value="${s.slug}">
+      <span class="service-option__thumb"><img src="${s.thumb}" alt="" width="72" height="72" loading="lazy" decoding="async"></span>
+      <span class="service-option__text"><span class="service-option__title">${esc(s.name)}</span><span class="service-option__meta">${esc(meta)}</span></span>
+      <span class="radio-mark" aria-hidden="true"></span>
+    </label>`;
+  }).join('');
+
+  chipsEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-category]');
+    if (!chip) return;
+    state.category = chip.dataset.category;
+    renderFilters();
+    store.save();
+  });
+
+  servicesEl.addEventListener('change', (e) => {
+    if (e.target.name !== 'sesion') return;
+    if (state.service !== e.target.value) {
+      state.service = e.target.value;
+      const s = getService();
+      state.pkg = s.packages.length === 1 ? s.packages[0].slug : null;
+      state.details = {};
+      if (LIVE_AVAILABILITY) state.time = null;
+      touched.clear();
+    }
+    hideError('error-sesion');
+    renderAll();
+    store.save();
+  });
+
+  function renderFilters() {
+    $$('.filter-chip', chipsEl).forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.category === state.category)));
+    $$('.service-option', servicesEl).forEach((o) => {
+      o.hidden = state.category !== 'todas' && o.dataset.category !== state.category;
+    });
+    const s = getService();
+    $('[data-selection-status]').textContent = `Sesión elegida: ${s ? s.name : 'ninguna'}`;
+  }
+
+  function renderServices() {
+    $$('input[name="sesion"]', servicesEl).forEach((i) => {
+      i.checked = i.value === state.service;
+      i.closest('.service-option').classList.toggle('is-selected', i.checked);
+    });
+  }
+
+  /* ---------- Paso 2 · Paquetes ---------- */
+  const packagesEl = $('[data-package-options]');
+
+  function renderPackages() {
+    const s = getService();
+    if (!s) { packagesEl.innerHTML = ''; return; }
+    if (packagesEl.dataset.service !== s.slug) {
+      packagesEl.dataset.service = s.slug;
+      packagesEl.innerHTML = s.packages.map((p) => `<label class="package-option">
+        <input class="visually-hidden" type="radio" name="paquete" value="${p.slug}">
+        <span class="radio-mark" aria-hidden="true"></span>
+        <span class="package-option__text">
+          <span class="package-option__name">${esc(p.name)}</span>
+          <span class="package-option__details">${esc(p.details)}</span>
+          <span class="package-option__deposit">Abono: ${money(deposit(p.price))}</span>
+        </span>
+        <span class="package-option__price">${money(p.price)}</span>
+      </label>`).join('');
+    }
+    $$('input[name="paquete"]', packagesEl).forEach((i) => {
+      i.checked = i.value === state.pkg;
+      i.closest('.package-option').classList.toggle('is-selected', i.checked);
+    });
+    const notice = $('[data-package-notice]');
+    notice.hidden = !s.notice;
+    if (s.notice) {
+      $('[data-notice-title]').textContent = s.notice.title;
+      $('[data-notice-body]').textContent = s.notice.body;
+    }
+  }
+
+  packagesEl.addEventListener('change', (e) => {
+    if (e.target.name !== 'paquete') return;
+    if (state.pkg !== e.target.value) {
+      state.pkg = e.target.value;
+      if (LIVE_AVAILABILITY) state.time = null; // la disponibilidad real puede depender del paquete
+    }
+    hideError('error-paquete');
+    renderAll();
+    store.save();
+  });
+
+  /* ---------- Paso 3 · Calendario y horarios ---------- */
+  const calDays = $('[data-cal-days]');
+  const slotsEl = $('[data-time-slots]');
+  let monthAvailability = null; // null = desconocida (sin API)
+  let availabilityError = false;
+  let focusDate = null;
+
+  $('[data-time-legend]').textContent = TA.timeLegend;
+
+  function dayStatus(dateIso) {
+    const dow = parseIso(dateIso).getUTCDay();
+    if (dateIso < MIN_DATE || !CFG.workingDays.includes(dow)) return 'unavailable';
+    if (monthKey(dateIso) > MAX_MONTH) return 'unavailable';
+    if (monthAvailability && !(monthAvailability[dateIso] || []).length) return 'unavailable';
+    return 'available';
+  }
+
+  async function loadMonth() {
+    availabilityError = false;
+    if (!LIVE_AVAILABILITY) { monthAvailability = null; return; }
+    $('[data-calendar]').setAttribute('aria-busy', 'true');
+    try {
+      monthAvailability = await fetchAvailability(state.viewMonth);
+    } catch (err) {
+      // Si la API falla, se vuelve al modo "horario preferido" (sin inventar disponibilidad)
+      monthAvailability = null;
+      availabilityError = true;
+    }
+    $('[data-calendar]').removeAttribute('aria-busy');
+  }
+
+  function renderCalendar() {
+    if (!state.viewMonth) state.viewMonth = state.date ? monthKey(state.date) : MIN_MONTH;
+    const [y, m] = state.viewMonth.split('-').map(Number);
+    $('[data-cal-month]').textContent = `${cap(MONTHS[m - 1])} ${y}`;
+    $('[data-cal-prev]').disabled = state.viewMonth <= MIN_MONTH;
+    $('[data-cal-next]').disabled = state.viewMonth >= MAX_MONTH;
+
+    const first = new Date(Date.UTC(y, m - 1, 1));
+    const lead = (first.getUTCDay() + 6) % 7; // semana empieza en lunes
+    const total = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const dates = [];
+    for (let d = 1; d <= total; d += 1) dates.push(iso(y, m - 1, d));
+
+    // Día enfocable (tabindex roving): seleccionado > enfocado > primer disponible
+    const inMonth = (s) => s && monthKey(s) === state.viewMonth;
+    let tabDate = inMonth(focusDate) ? focusDate : inMonth(state.date) ? state.date : dates.find((d) => dayStatus(d) === 'available') || dates[0];
+
+    const cells = [];
+    for (let i = 0; i < lead; i += 1) cells.push('<td class="calendar__empty"></td>');
+    dates.forEach((d) => {
+      const status = dayStatus(d);
+      const selected = d === state.date;
+      const label = `${longDate(d)}${status === 'unavailable' ? ', no disponible' : ''}`;
+      cells.push(`<td><button type="button" class="cal-day${selected ? ' is-selected' : ''}${status === 'unavailable' ? ' is-unavailable' : ''}"
+        data-date="${d}" aria-label="${label}" aria-pressed="${selected}"${status === 'unavailable' ? ' aria-disabled="true"' : ''}
+        tabindex="${d === tabDate ? 0 : -1}">${Number(d.slice(8))}</button></td>`);
+    });
+    while (cells.length % 7) cells.push('<td class="calendar__empty"></td>');
+    const rows = [];
+    for (let i = 0; i < cells.length; i += 7) rows.push(`<tr>${cells.slice(i, i + 7).join('')}</tr>`);
+    calDays.innerHTML = rows.join('');
+  }
+
+  function renderSlots() {
+    const dateEl = $('[data-time-date]');
+    dateEl.textContent = state.date ? cap(longDate(state.date, false)) : 'Primero elige una fecha';
+    const free = state.date && monthAvailability ? monthAvailability[state.date] || [] : null;
+    slotsEl.innerHTML = CFG.startTimes.map((t) => {
+      const disabled = !state.date || (free && !free.includes(t.value));
+      const checked = state.time === t.value && !disabled;
+      return `<label class="time-slot${checked ? ' is-selected' : ''}${disabled && state.date ? ' is-unavailable' : ''}">
+        <input class="visually-hidden" type="radio" name="hora" value="${t.value}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>
+        <img class="time-slot__check" src="assets/icons/check-inverse.svg" alt="" width="16" height="16">
+        <span>${t.label}</span>${disabled && state.date ? '<span class="visually-hidden">, no disponible</span>' : ''}
+      </label>`;
+    }).join('');
+    const note = $('[data-time-note]');
+    note.textContent = availabilityError
+      ? 'No pudimos consultar la disponibilidad. Elige tu horario preferido y Ely te lo confirmará por WhatsApp.'
+      : (monthAvailability ? COPY.live.timeNote : COPY.manual.timeNote);
+    $('[data-time-legend]').textContent = monthAvailability ? COPY.live.timeLegend : COPY.manual.timeLegend;
+  }
+
+  async function changeMonth(delta, keepFocus) {
+    const next = addMonths(state.viewMonth, delta);
+    if (next < MIN_MONTH || next > MAX_MONTH) return false;
+    state.viewMonth = next;
+    await loadMonth();
+    renderCalendar();
+    if (keepFocus) focusCalendarDay();
+    return true;
+  }
+
+  function focusCalendarDay() {
+    const btn = calDays.querySelector('[tabindex="0"]');
+    if (btn) btn.focus();
+  }
+
+  $('[data-cal-prev]').addEventListener('click', () => { focusDate = null; changeMonth(-1); });
+  $('[data-cal-next]').addEventListener('click', () => { focusDate = null; changeMonth(1); });
+
+  calDays.addEventListener('click', (e) => {
+    const btn = e.target.closest('.cal-day');
+    if (!btn || btn.getAttribute('aria-disabled') === 'true') return;
+    state.date = btn.dataset.date;
+    focusDate = state.date;
+    const free = monthAvailability ? monthAvailability[state.date] || [] : null;
+    if (free && state.time && !free.includes(state.time)) state.time = null;
+    hideError('error-fecha');
+    renderCalendar();
+    focusCalendarDay();
+    renderSlots();
+    renderSummaries();
+    store.save();
+  });
+
+  calDays.addEventListener('keydown', async (e) => {
+    const btn = e.target.closest('.cal-day');
+    if (!btn) return;
+    const cur = btn.dataset.date;
+    const dow = (parseIso(cur).getUTCDay() + 6) % 7;
+    const moves = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7, Home: -dow, End: 6 - dow };
+    let target = null;
+    if (e.key in moves) target = addDays(cur, moves[e.key]);
+    else if (e.key === 'PageUp' || e.key === 'PageDown') {
+      const d = Number(cur.slice(8));
+      const nm = addMonths(cur.slice(0, 7), e.key === 'PageUp' ? -1 : 1);
+      const [ny, nmm] = nm.split('-').map(Number);
+      const last = new Date(Date.UTC(ny, nmm, 0)).getUTCDate();
+      target = `${nm}-${pad(Math.min(d, last))}`;
+    } else return;
+    e.preventDefault();
+    const tm = monthKey(target);
+    if (tm < MIN_MONTH || tm > MAX_MONTH) return;
+    focusDate = target;
+    if (tm !== state.viewMonth) {
+      state.viewMonth = tm;
+      await loadMonth();
+    }
+    renderCalendar();
+    focusCalendarDay();
+  });
+
+  slotsEl.addEventListener('change', (e) => {
+    if (e.target.name !== 'hora') return;
+    state.time = e.target.value;
+    hideError('error-hora');
+    renderSlots();
+    const input = slotsEl.querySelector(`input[value="${state.time}"]`);
+    if (input) input.focus();
+    renderSummaries();
+    store.save();
+  });
+
+  /* ---------- Paso 4 · Formularios por servicio ---------- */
+  const detailsEl = $('[data-detail-fields]');
+  const pkgFlag = (flag) => () => Boolean(getPackage() && getPackage()[flag]);
+  const NOTES = { type: 'textarea', name: 'notas', label: 'Cuéntanos un poco más', optional: true, placeholder: 'Comparte ideas, estilos o detalles importantes para tu sesión.', helper: 'Estilos, colores o personas que participarán' };
+  const YES_NO = ['Sí', 'No'];
+
+  // Definiciones (Figma: Paso 4 Embarazo + "Conditional detail forms").
+  // summary: texto corto para el resumen (derivado).
+  const FORMS = {
+    embarazo: [
+      { row: [
+        { type: 'stepper', name: 'semanas', label: 'Semanas de embarazo', value: 30, min: 1, max: 42, helper: 'Lo ideal es entre la semana 28 y la 32.', summary: (v) => `Semanas de embarazo: ${v}` },
+        { type: 'date', name: 'fpp', label: 'Fecha probable de parto', min: TODAY },
+      ] },
+      { type: 'radio', name: 'lugar', label: '¿Dónde será tu sesión?', options: ['En el estudio', 'En exteriores'], locked: () => (getPackage() && getPackage().place === 'exteriores' ? 'En exteriores' : 'En el estudio'), helper: 'Según el paquete que elegiste. Puedes cambiarlo volviendo al paso 2.' },
+      { type: 'radio', name: 'vestuario', label: 'Vestuario', options: ['Traeré mi propio vestuario', 'Quiero usar vestidos del estudio', 'Ambos'], helper: 'Si quieres usar vestidos del estudio, los eliges con anticipación.',
+        summary: (v) => ({ 'Traeré mi propio vestuario': 'Vestuario propio', 'Quiero usar vestidos del estudio': 'Vestidos del estudio', Ambos: 'Vestuario propio y del estudio' }[v]) },
+      { type: 'radio', name: 'pareja', label: '¿Participará tu pareja o tu familia?', options: YES_NO },
+      NOTES,
+    ],
+    newborn: [
+      { type: 'radio', name: 'nacio', label: '¿Tu bebé ya nació?', options: YES_NO },
+      { row: [
+        { type: 'date', name: 'nacimiento', label: 'Fecha de nacimiento', max: TODAY, when: (d) => d.nacio === 'Sí' },
+        { type: 'computed', name: 'edad', label: 'Edad del bebé', helper: 'Se calcula con la fecha de nacimiento.', when: (d) => d.nacio === 'Sí',
+          compute: (d) => { if (!d.nacimiento) return ''; const days = Math.round((parseIso(TODAY) - parseIso(d.nacimiento)) / 864e5); return days >= 0 ? `${days} ${days === 1 ? 'día' : 'días'}` : ''; },
+          summary: (v) => (v ? `Edad del bebé: ${v}` : '') },
+        { type: 'date', name: 'fpp', label: 'Fecha probable de parto', min: TODAY, when: (d) => d.nacio === 'No', summary: (v) => `Fecha probable de parto: ${shortDate(v)}` },
+      ] },
+      { row: [
+        { type: 'stepper', name: 'bebes', label: 'Cantidad de bebés', value: 1, min: 1, max: 3, unit: 'bebé', summary: (v) => `Bebés: ${v}` },
+        { type: 'stepper', name: 'acompanantes', label: 'Acompañantes', value: 1, min: 0, max: 1, unit: 'persona', helper: 'Una persona puede acompañarte para ayudar.' },
+      ] },
+      { type: 'notice', title: 'Edad de tu bebé', body: 'El posado clásico Newborn es entre el día 8 y el 12 de nacido. Si tu bebé tiene más de 15 días, prepararemos una sesión adecuada a su edad.' },
+    ],
+    'cumpleanos-infantiles': [
+      { row: [
+        { type: 'stepper', name: 'edad', label: 'Edad que cumple', value: 3, min: 2, max: 6, unit: 'año', helper: 'Sesiones para niñas y niños de 2 a 6 años.', summary: (v) => `Edad que cumple: ${v}` },
+        { type: 'date', name: 'cumple', label: 'Fecha del cumpleaños' },
+      ] },
+      { type: 'text', name: 'tematica', label: 'Temática', placeholder: 'Ej.: mariposas, safari o flores', helper: 'Pídela con 2 semanas de anticipación. No trabajamos temáticas de personajes.', when: pkgFlag('tematica'), summary: (v) => `Temática: ${v}` },
+      { type: 'radio', name: 'cakesmash', label: '¿Quieres cake smash?', options: YES_NO, when: pkgFlag('cakeSmash') },
+      { type: 'radio', name: 'decoracion', label: 'Decoración', options: ['Usaremos la del estudio', 'Traeré globos o accesorios'], helper: 'Si traes globos o accesorios, deben llegar al estudio 2 días antes.' },
+      { type: 'text', name: 'referencias', label: 'Referencias', optional: true, placeholder: 'Enlace a fotos de referencia' },
+    ],
+    familiar: [
+      { type: 'stepper', name: 'participantes', label: 'Número de participantes', value: 4, min: 1, max: 30, unit: 'persona', helper: 'Incluye a todas las personas que aparecerán en las fotos.', summary: (v) => `Participantes: ${v}` },
+      { type: 'text', name: 'edades', label: 'Edades de los niños', optional: true, placeholder: 'Ej.: 3 y 7 años' },
+      { type: 'radio', name: 'mascota', label: '¿Vendrá su mascota?', options: YES_NO, helper: 'Las mascotas participan en fotos con fondo blanco, sin escenarios.' },
+      { type: 'text', name: 'ubicacion', label: 'Ubicación preferida', optional: true, placeholder: 'Estudio u otro lugar', helper: 'La sesión familiar se realiza en el estudio. Si prefieres otro lugar, cuéntanos y lo confirmamos.' },
+    ],
+    recepciones: [
+      { type: 'text', name: 'tipo', label: 'Tipo de evento', placeholder: 'Quince años', summary: (v) => `Tipo de evento: ${v}` },
+      { row: [
+        { type: 'date', name: 'fechaevento', label: 'Fecha del evento', min: TODAY },
+        { type: 'text', name: 'duracion', label: 'Duración aproximada', placeholder: 'Ej.: 3 horas', helper: 'La cobertura incluye unas 3 horas.' },
+      ] },
+      { type: 'text', name: 'lugarevento', label: 'Lugar del evento', placeholder: 'Nombre y dirección del lugar' },
+      { type: 'textarea', name: 'requerimientos', label: 'Requerimientos adicionales', optional: true, placeholder: 'Momentos importantes, horarios o cualquier detalle que debamos saber.' },
+    ],
+    general: [NOTES],
+  };
+
+  const allFields = (defs) => defs.flatMap((f) => (f.row ? f.row : [f])).filter((f) => f.name);
+  const currentFields = () => allFields(FORMS[(getService() || {}).form] || []);
+  const visible = (f) => !f.when || f.when(state.details);
+
+  function fieldMessage(f, id) {
+    return `<p class="field-message" id="${id}-msg" aria-live="polite" data-helper="${esc(f.helper || '')}">${esc(f.helper || '')}</p>`;
+  }
+
+  function labelHTML(f, forId) {
+    return `<label class="field__label" for="${forId}">${esc(f.label)}${f.optional ? ' <span class="field__optional">(opcional)</span>' : ''}</label>`;
+  }
+
+  function fieldHTML(f) {
+    const id = `d-${f.name}`;
+    const v = state.details[f.name] ?? '';
+    const desc = `aria-describedby="${id}-msg"`;
+    const req = f.optional ? '' : ' required';
+    switch (f.type) {
+      case 'stepper': return `<div class="field" data-field="${f.name}">
+        ${labelHTML(f, id)}
+        <div class="stepper">
+          <button class="icon-btn" type="button" data-step-btn="-1" aria-label="Restar ${f.unit === 'bebé' ? 'un bebé' : f.unit === 'año' ? 'un año' : f.unit === 'persona' ? 'una persona' : 'una semana'}" aria-controls="${id}"><img src="assets/icons/minus.svg" alt="" width="24" height="24"></button>
+          <input class="stepper__input" id="${id}" name="${f.name}" type="number" inputmode="numeric" min="${f.min}" max="${f.max}" value="${esc(v)}" ${desc}${req}>
+          <button class="icon-btn" type="button" data-step-btn="1" aria-label="Sumar ${f.unit === 'bebé' ? 'un bebé' : f.unit === 'año' ? 'un año' : f.unit === 'persona' ? 'una persona' : 'una semana'}" aria-controls="${id}"><img src="assets/icons/plus.svg" alt="" width="24" height="24"></button>
+        </div>
+        ${fieldMessage(f, id)}
+      </div>`;
+      case 'date': return `<div class="field" data-field="${f.name}">
+        ${labelHTML(f, id)}
+        <input class="input input--date" id="${id}" name="${f.name}" type="date" value="${esc(v)}"${f.min ? ` min="${f.min}"` : ''}${f.max ? ` max="${f.max}"` : ''} ${desc}${req}>
+        ${fieldMessage(f, id)}
+      </div>`;
+      case 'text': return `<div class="field" data-field="${f.name}">
+        ${labelHTML(f, id)}
+        <input class="input" id="${id}" name="${f.name}" type="text" maxlength="120" value="${esc(v)}" placeholder="${esc(f.placeholder || '')}" ${desc}${req}>
+        ${fieldMessage(f, id)}
+      </div>`;
+      case 'computed': return `<div class="field" data-field="${f.name}">
+        ${labelHTML(f, id)}
+        <output class="input input--readonly" id="${id}" ${desc}>${esc(f.compute(state.details))}</output>
+        ${fieldMessage(f, id)}
+      </div>`;
+      case 'textarea': return `<div class="field field--textarea" data-field="${f.name}">
+        ${labelHTML(f, id)}
+        <textarea class="textarea" id="${id}" name="${f.name}" maxlength="500" rows="4" placeholder="${esc(f.placeholder || '')}" aria-describedby="${id}-msg ${id}-count">${esc(v)}</textarea>
+        <div class="field__footer">
+          ${fieldMessage(f, id)}
+          <p class="field__counter" id="${id}-count"><span data-count>${String(v).length}</span>/500<span class="visually-hidden"> caracteres</span></p>
+        </div>
+      </div>`;
+      case 'radio': {
+        const locked = f.locked ? f.locked() : null;
+        return `<fieldset class="radio-group" data-field="${f.name}" aria-describedby="${id}-msg">
+          <legend class="radio-group__legend">${esc(f.label)}</legend>
+          <div class="radio-group__options">
+            ${f.options.map((o, i) => `<label class="radio">
+              <input type="radio" name="${f.name}" value="${esc(o)}" id="${id}-${i}"${(locked ? locked === o : v === o) ? ' checked' : ''}${locked && locked !== o ? ' disabled' : ''}${req}>
+              <span class="radio-mark" aria-hidden="true"></span><span>${esc(o)}</span>
+            </label>`).join('')}
+          </div>
+          ${fieldMessage(f, id)}
+        </fieldset>`;
+      }
+      case 'notice': return `<div class="notice notice--info">
+        <span class="notice__bar" aria-hidden="true"></span>
+        <div class="notice__content"><span class="notice__icon"><img src="assets/icons/info-notice.svg" alt="" width="20" height="20"></span>
+        <div class="notice__text"><p class="notice__title">${esc(f.title)}</p><p class="notice__body">${esc(f.body)}</p></div></div>
+      </div>`;
+      default: return '';
+    }
+  }
+
+  function renderDetailsForm() {
+    const s = getService();
+    const key = s ? `${s.slug}|${state.pkg}` : '';
+    if (detailsEl.dataset.key === key) { applyVisibility(); return; }
+    detailsEl.dataset.key = key;
+    const defs = s ? FORMS[s.form] || FORMS.general : [];
+    // Valores iniciales (steppers y opción fija por paquete)
+    allFields(defs).forEach((f) => {
+      if (f.type === 'stepper' && (state.details[f.name] === undefined || state.details[f.name] === '')) state.details[f.name] = f.value;
+      if (f.locked) state.details[f.name] = f.locked();
+    });
+    detailsEl.innerHTML = defs.map((f) => (f.row
+      ? `<div class="form-row">${f.row.map(fieldHTML).join('')}</div>`
+      : fieldHTML(f))).join('');
+    applyVisibility();
+  }
+
+  function applyVisibility() {
+    currentFields().forEach((f) => {
+      const el = detailsEl.querySelector(`[data-field="${f.name}"]`);
+      if (!el) return;
+      el.hidden = !visible(f);
+      if (f.type === 'computed') el.querySelector('output').textContent = f.compute(state.details);
+    });
+    $$('.form-row', detailsEl).forEach((row) => {
+      row.hidden = [...row.children].every((c) => c.hidden);
+    });
+  }
+
+  function readDetail(target) {
+    const { name } = target;
+    if (!name) return;
+    if (target.type === 'radio') { if (target.checked) state.details[name] = target.value; } else state.details[name] = target.value;
+  }
+
+  detailsEl.addEventListener('input', (e) => {
+    readDetail(e.target);
+    if (e.target.tagName === 'TEXTAREA') {
+      const count = e.target.closest('.field').querySelector('[data-count]');
+      count.textContent = e.target.value.length;
+    }
+    applyVisibility();
+    if (touched.has(e.target.name)) validateField(e.target.name);
+    renderSummaries();
+    store.save();
+  });
+  detailsEl.addEventListener('change', (e) => {
+    readDetail(e.target);
+    touched.add(e.target.name);
+    applyVisibility();
+    validateField(e.target.name);
+    renderSummaries();
+    store.save();
+  });
+  detailsEl.addEventListener('focusout', (e) => {
+    const { name } = e.target;
+    if (!name || e.target.type === 'radio') return;
+    touched.add(name);
+    validateField(name);
+  });
+  detailsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-step-btn]');
+    if (!btn) return;
+    const input = document.getElementById(btn.getAttribute('aria-controls'));
+    const min = Number(input.min); const max = Number(input.max);
+    const next = Math.min(max, Math.max(min, (Number(input.value) || 0) + Number(btn.dataset.stepBtn)));
+    input.value = next;
+    state.details[input.name] = next;
+    validateField(input.name);
+    renderSummaries();
+    store.save();
+  });
+
+  /* ---------- Contacto ---------- */
+  const nameInput = $('#nombre');
+  const phoneInput = $('#whatsapp');
+  const codeSelect = $('#codigo-pais');
+  const digits = (s) => String(s || '').replace(/\D/g, '').replace(/^0+/, '');
+  const formatPhone = (s) => { const d = digits(s); return d.length === 10 ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : d; };
+
+  nameInput.addEventListener('input', () => { state.name = nameInput.value; if (touched.has('nombre')) validateField('nombre'); renderSummaries(); store.save(); });
+  phoneInput.addEventListener('input', () => { state.phone = phoneInput.value; if (touched.has('whatsapp')) validateField('whatsapp'); renderSummaries(); store.save(); });
+  codeSelect.addEventListener('change', () => { state.code = codeSelect.value; renderSummaries(); store.save(); });
+  [nameInput, phoneInput].forEach((i) => i.addEventListener('blur', () => { touched.add(i.name); validateField(i.name); }));
+
+  /* ---------- Validación ---------- */
+  function setFieldError(el, msgEl, message) {
+    const invalid = Boolean(message);
+    if (el) {
+      if (el.tagName === 'FIELDSET') {
+        el.classList.toggle('is-invalid', invalid);
+        $$('input', el).forEach((i) => (invalid ? i.setAttribute('aria-invalid', 'true') : i.removeAttribute('aria-invalid')));
+      } else if (invalid) el.setAttribute('aria-invalid', 'true');
+      else el.removeAttribute('aria-invalid');
+    }
+    if (!msgEl) return;
+    msgEl.classList.toggle('field-message--error', invalid);
+    msgEl.textContent = invalid ? message : msgEl.dataset.helper || '';
+  }
+
+  // Devuelve el mensaje de error (o '') y lo pinta.
+  function validateField(name) {
+    if (name === 'nombre') {
+      const msg = state.name.trim().length < 2 ? ERR.required : '';
+      setFieldError(nameInput, $('#nombre-msg'), msg);
+      return msg;
+    }
+    if (name === 'whatsapp') {
+      const d = digits(state.phone);
+      const msg = !d ? ERR.required : d.length !== 10 ? ERR.phone : '';
+      setFieldError(phoneInput, $('#whatsapp-msg'), msg);
+      phoneInput.closest('.input').classList.toggle('is-invalid', Boolean(msg));
+      return msg;
+    }
+    const f = currentFields().find((x) => x.name === name);
+    if (!f || f.type === 'computed') return '';
+    const id = `d-${f.name}`;
+    const wrapper = detailsEl.querySelector(`[data-field="${f.name}"]`);
+    const control = f.type === 'radio' ? wrapper : document.getElementById(id);
+    const msgEl = document.getElementById(`${id}-msg`);
+    let msg = '';
+    if (visible(f) && !f.optional) {
+      const v = state.details[f.name];
+      if (v === undefined || v === null || String(v).trim() === '') msg = ERR.required;
+      else if (f.type === 'date' && f.min && v < f.min) msg = ERR.dateFuture;
+      else if (f.type === 'date' && f.max && v > f.max) msg = ERR.datePast;
+      else if (f.type === 'stepper' && (Number(v) < f.min || Number(v) > f.max)) msg = `Elige un número entre ${f.min} y ${f.max}.`;
+    }
+    setFieldError(control, msgEl, msg);
+    return msg;
+  }
+
+  function showError(id, message, control) {
+    const el = document.getElementById(id);
+    el.textContent = message;
+    el.hidden = false;
+    if (control) control.setAttribute('aria-invalid', 'true');
+  }
+  function hideError(id) {
+    const el = document.getElementById(id);
+    el.hidden = true;
+    el.textContent = '';
+  }
+
+  const stepValid = {
+    1: () => Boolean(getService()),
+    2: () => Boolean(getPackage()),
+    3: () => Boolean(state.date && state.time && dayStatus(state.date) === 'available'),
+    4: () => currentFields().every((f) => !validateSilently(f)) && state.name.trim().length >= 2 && digits(state.phone).length === 10,
+    5: () => state.consent,
+  };
+
+  function validateSilently(f) {
+    if (!visible(f) || f.optional || f.type === 'computed') return false;
+    const v = state.details[f.name];
+    if (v === undefined || v === null || String(v).trim() === '') return true;
+    if (f.type === 'date' && ((f.min && v < f.min) || (f.max && v > f.max))) return true;
+    return false;
+  }
+
+  // Valida el paso actual mostrando errores; enfoca el primer error.
+  function validateStep(step) {
+    let firstInvalid = null;
+    if (step === 1 && !stepValid[1]()) {
+      showError('error-sesion', ERR.service);
+      firstInvalid = servicesEl.querySelector('.service-option:not([hidden]) input');
+    }
+    if (step === 2 && !stepValid[2]()) {
+      showError('error-paquete', ERR.package);
+      firstInvalid = packagesEl.querySelector('input');
+    }
+    if (step === 3) {
+      if (!state.date || dayStatus(state.date) !== 'available') {
+        showError('error-fecha', ERR.date);
+        firstInvalid = calDays.querySelector('[tabindex="0"]');
+      } else if (!state.time) {
+        showError('error-hora', ERR.time);
+        firstInvalid = slotsEl.querySelector('input:not(:disabled)');
+      }
+    }
+    if (step === 4) {
+      currentFields().forEach((f) => {
+        touched.add(f.name);
+        if (validateField(f.name) && !firstInvalid) {
+          firstInvalid = f.type === 'radio'
+            ? detailsEl.querySelector(`[data-field="${f.name}"] input:not(:disabled)`)
+            : document.getElementById(`d-${f.name}`);
+        }
+      });
+      touched.add('nombre'); touched.add('whatsapp');
+      if (validateField('nombre') && !firstInvalid) firstInvalid = nameInput;
+      if (validateField('whatsapp') && !firstInvalid) firstInvalid = phoneInput;
+    }
+    if (step === 5 && !state.consent) {
+      const msg = $('#acepto-msg');
+      msg.textContent = ERR.consent;
+      msg.hidden = false;
+      consent.setAttribute('aria-invalid', 'true');
+      consent.closest('.checkbox').classList.add('is-invalid');
+      firstInvalid = consent;
+    }
+    if (firstInvalid) {
+      firstInvalid.focus({ preventScroll: true });
+      firstInvalid.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      return false;
+    }
+    return true;
+  }
+
+  // Paso más alto accesible según los datos actuales
+  function maxReachable() {
+    let s = 1;
+    while (s < 5 && stepValid[s]()) s += 1;
+    return s;
+  }
+
+  /* ---------- Consentimiento ---------- */
+  const consent = $('#acepto');
+  consent.addEventListener('change', () => {
+    state.consent = consent.checked;
+    if (consent.checked) {
+      $('#acepto-msg').hidden = true;
+      consent.removeAttribute('aria-invalid');
+      consent.closest('.checkbox').classList.remove('is-invalid');
+    }
+    store.save();
+  });
+
+  /* ---------- Resumen ---------- */
+  function detailEntries() {
+    return currentFields().filter((f) => visible(f)).map((f) => {
+      let v = f.type === 'computed' ? f.compute(state.details) : state.details[f.name];
+      if (v === undefined || v === null || String(v).trim() === '') return null;
+      if (f.type === 'date') v = shortDate(v);
+      return [f.label.replace(/[¿?]/g, ''), String(v).trim()];
+    }).filter(Boolean);
+  }
+
+  function detailSummary() {
+    const lines = currentFields().filter((f) => f.summary && visible(f)).map((f) => {
+      const v = f.type === 'computed' ? f.compute(state.details) : state.details[f.name];
+      return v === undefined || v === '' ? '' : f.summary(v);
+    }).filter(Boolean);
+    if (lines.length) return lines;
+    const notes = String(state.details.notas || '').trim();
+    return [notes ? (notes.length > 40 ? `${notes.slice(0, 40)}…` : notes) : 'Sin comentarios'];
+  }
+
+  function summaryHTML({ title = true, notice = true } = {}) {
+    const s = getService();
+    const p = getPackage();
+    const contactDone = state.step >= 5 || state.step === 'success';
+    const contact = contactDone ? [state.name.trim(), `${state.code} ${formatPhone(state.phone)}`] : null;
+    const rows = [
+      ['Servicio', s ? [s.name] : ['Por elegir']],
+      ['Paquete', p ? [p.name] : ['Por elegir']],
+      ['Fecha', state.date && state.step !== 1 && state.step !== 2 ? [cap(longDate(state.date))] : ['Por elegir']],
+      ['Hora', state.time && state.step !== 1 && state.step !== 2 ? [`${timeLabel(state.time)} (${CFG.timezoneLabel})`] : ['Por elegir']],
+      ['Datos de contacto', contact || ['Por completar']],
+      ['Detalles', contactDone ? detailSummary() : ['Por completar']],
+    ];
+    return `${title ? '<h2 class="summary-card__title">Resumen de tu reserva</h2>' : ''}
+      <dl class="summary-rows">${rows.map(([k, v]) => `<div class="summary-row"><dt>${k}</dt><dd>${v.map(esc).join('<br>')}</dd></div>`).join('')}</dl>
+      <hr class="summary-card__divider">
+      <dl class="summary-totals">
+        <div class="summary-row summary-row--total"><dt>Precio total</dt><dd>${p ? money(p.price) : '—'}</dd></div>
+        <div class="summary-row summary-row--total"><dt>Abono requerido (50%)</dt><dd>${p ? money(deposit(p.price)) : '—'}</dd></div>
+      </dl>
+      ${notice ? `<div class="notice notice--important">
+        <span class="notice__bar" aria-hidden="true"></span>
+        <div class="notice__content"><span class="notice__icon"><img src="assets/icons/alert.svg" alt="" width="20" height="20"></span>
+        <div class="notice__text"><p class="notice__title">Abono del 50%</p><p class="notice__body">${esc(T.notice)}</p></div></div>
+      </div>` : ''}`;
+  }
+
+  function whatsappMessage() {
+    const s = getService();
+    const p = getPackage();
+    if (!s || !p) return '';
+    const dep = money(deposit(p.price));
+    const lines = [];
+    if (LIVE_BOOKING) {
+      // Texto exacto de Figma (solicitud registrada por el sistema)
+      lines.push(state.step === 'success' ? 'Hola, Ely. Acabo de enviar una solicitud de reserva desde tu página web.' : 'Hola, Ely. Quiero reservar una sesión.');
+      lines.push(`Servicio: ${s.name}`, `Paquete: ${p.name} (${money(p.price)})`);
+      lines.push(`Fecha: ${longDate(state.date)}`, `Hora: ${timeLabel(state.time)} (${CFG.timezoneLabel})`);
+      lines.push(`Nombre: ${state.name.trim()}`, `WhatsApp: ${state.code} ${formatPhone(state.phone)}`);
+      if (state.step === 'success') lines.push(`Quiero coordinar el abono de ${dep} (50%).`);
+    } else {
+      // Sin backend: el mensaje ES la solicitud; fecha y hora son preferencias por confirmar
+      lines.push('Hola, Ely. Quiero reservar una sesión.');
+      lines.push(`Servicio: ${s.name}`, `Paquete: ${p.name} (${money(p.price)})`);
+      lines.push(`Fecha preferida: ${longDate(state.date)}`, `Hora preferida: ${timeLabel(state.time)} (${CFG.timezoneLabel})`);
+      detailEntries().forEach(([k, v]) => lines.push(`${k}: ${v}`));
+      lines.push(`Nombre: ${state.name.trim()}`, `WhatsApp: ${state.code} ${formatPhone(state.phone)}`);
+      lines.push(`Quiero coordinar el abono de ${dep} (50%).`);
+    }
+    return lines.join('\n');
+  }
+
+  const waUrl = () => `https://wa.me/${CFG.whatsappNumber}?text=${encodeURIComponent(whatsappMessage())}`;
+
+  function previewHTML() {
+    return `<p class="wa-preview__header"><img src="assets/icons/whatsapp.svg" alt="" width="20" height="20">Mensaje para WhatsApp</p>
+      <div class="wa-preview__box"><p>${esc(whatsappMessage()).replace(/\n/g, '<br>')}</p></div>
+      <p class="wa-preview__note">Se abrirá tu WhatsApp con este mensaje listo; tú lo envías.</p>`;
+  }
+
+  function renderSummaries() {
+    const step = state.step;
+    const p = getPackage();
+    const s = getService();
+    $('[data-summary="aside"]').innerHTML = summaryHTML({ notice: step !== 'success' });
+    $('[data-summary="bar"]').innerHTML = summaryHTML({ title: false });
+    if (step === 5) $('[data-summary="review"]').innerHTML = summaryHTML();
+    if (step === 'success') $('[data-summary="success-mobile"]').innerHTML = summaryHTML({ notice: false });
+    if (step === 5 || step === 'success') {
+      $$('[data-wa-preview]').forEach((el) => { el.innerHTML = previewHTML(); });
+      $('[data-whatsapp-link]').href = waUrl();
+    }
+    // Total en la barra móvil
+    let total = '—';
+    if (p) total = money(p.price);
+    else if (s) total = `${s.packages.length > 1 ? 'desde ' : ''}${money(Math.min(...s.packages.map((x) => x.price)))}`;
+    $('[data-bar-total]').textContent = total;
+    // Textos con el abono
+    const dep = p ? money(deposit(p.price)) : 'US$0';
+    $('[data-copy="after2"]').textContent = T.after2(dep);
+    $('[data-copy="next1"]').textContent = T.next1(dep);
+    $('[data-status-meta]').textContent = `Abono requerido: ${dep} · plazo de 24 horas desde tu solicitud.`;
+  }
+
+  // Copias estáticas según el modo
+  $$('[data-copy="submit"]').forEach((el) => { el.textContent = T.submit; });
+  $('[data-copy="after1"]').textContent = T.after1;
+  $('[data-copy="badge"]').textContent = T.badge;
+  $('[data-copy="statusTitle"]').textContent = T.statusTitle;
+  $('[data-copy="statusText"]').textContent = T.statusText;
+
+  /* ---------- Resumen móvil (barra expandible) ---------- */
+  const bar = $('[data-action-bar]');
+  const toggle = $('[data-summary-toggle]');
+  const panel = $('#resumen-movil');
+
+  function setSummaryOpen(open, { restoreFocus = false } = {}) {
+    toggle.setAttribute('aria-expanded', String(open));
+    panel.hidden = !open;
+    bar.classList.toggle('is-expanded', open); // las acciones se ocultan con el resumen abierto
+    if (!open && restoreFocus) toggle.focus();
+  }
+  toggle.addEventListener('click', () => setSummaryOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') setSummaryOpen(false, { restoreFocus: true });
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (toggle.getAttribute('aria-expanded') === 'true' && !bar.contains(e.target)) setSummaryOpen(false);
+  });
+  matchMedia('(min-width: 768px)').addEventListener('change', (e) => { if (e.matches) setSummaryOpen(false); });
+
+  /* ---------- Render por paso ---------- */
+  function renderStepChrome() {
+    const step = state.step;
+    const success = step === 'success';
+    form.dataset.step = String(step);
+    $$('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== String(step); });
+    $('[data-step-indicator]').hidden = success;
+
+    if (!success) {
+      const info = STEPS[step - 1];
+      $('[data-step-number]').textContent = step;
+      $('[data-step-name]').textContent = info.name;
+      $$('.step-indicator__bar li').forEach((li, i) => {
+        li.classList.toggle('is-done', i < step - 1);
+        li.classList.toggle('is-current', i === step - 1);
+        if (i === step - 1) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+      });
+      $('[data-title]').textContent = info.title;
+      $('[data-subtitle]').textContent = info.subtitle(getService());
+      document.title = `${info.name} · Reservar · Ely Salazar`;
+    } else {
+      $('[data-title]').textContent = T.successTitle;
+      $('[data-subtitle]').textContent = T.successSubtitle;
+      document.title = 'Solicitud · Reservar · Ely Salazar';
+    }
+
+    // Atrás: botón en la barra (pasos 2–4) o icono junto al título (paso 5)
+    $('.action-bar__back').hidden = !(step >= 2 && step <= 4);
+    $('.booking__back-icon').hidden = step !== 5;
+    $('[data-next]').hidden = !(step >= 1 && step <= 4);
+    $('[data-submit]').hidden = step !== 5;
+    bar.hidden = success;
+    if (step === 5 || success) setSummaryOpen(false);
+  }
+
+  function renderAll() {
+    renderFilters();
+    renderServices();
+    renderPackages();
+    renderCalendar();
+    renderSlots();
+    renderDetailsForm();
+    nameInput.value = state.name;
+    phoneInput.value = state.phone;
+    codeSelect.value = state.code;
+    consent.checked = state.consent;
+    renderStepChrome();
+    renderSummaries();
+  }
+
+  let depth = 0; // pasos apilados en el historial por este flujo
+
+  async function goTo(step, { push = true, focus = true } = {}) {
+    state.step = step;
+    if (step === 3) { await loadMonth(); }
+    renderAll();
+    store.save();
+    const url = new URL(location.href);
+    url.searchParams.set('paso', step === 'success' ? 'listo' : String(step));
+    if (push) depth += 1;
+    if (push) history.pushState({ step, depth }, '', url); else history.replaceState({ step, depth }, '', url);
+    if (focus) {
+      const title = $('[data-title]');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      title.focus({ preventScroll: true });
+    }
+  }
+
+  $('[data-next]').addEventListener('click', () => {
+    const step = state.step;
+    if (!validateStep(step)) return;
+    goTo(step + 1);
+  });
+  // Atrás: usa el historial si el paso anterior está en él; si no (entrada directa), lo reemplaza
+  $$('[data-back]').forEach((b) => b.addEventListener('click', () => {
+    if (typeof state.step !== 'number' || state.step <= 1) return;
+    if (depth > 0) history.back();
+    else goTo(state.step - 1, { push: false });
+  }));
+
+  // Envío final
+  let sending = false;
+  // Los botones son type="button": el formulario nunca se envía de forma nativa
+  // (evita que los datos personales terminen en la URL si el script no cargó).
+  form.addEventListener('submit', (e) => e.preventDefault());
+  $$('[data-submit], [data-submit-side]').forEach((b) => b.addEventListener('click', sendRequest));
+
+  async function sendRequest() {
+    if (state.step !== 5 || sending) return;
+    if (!validateStep(5)) return;
+    hideError('error-envio');
+    if (LIVE_BOOKING) {
+      sending = true;
+      $$('[data-submit], [data-submit-side]').forEach((b) => b.setAttribute('aria-disabled', 'true'));
+      try {
+        await submitBooking(buildBookingPayload());
+      } catch (err) {
+        showError('error-envio', ERR.submit);
+        sending = false;
+        $$('[data-submit], [data-submit-side]').forEach((b) => b.removeAttribute('aria-disabled'));
+        return;
+      }
+      sending = false;
+    }
+    await goTo('success');
+    store.clear();
+  }
+
+  // Evita enviar el formulario con Enter en campos de texto antes del paso 5
+  form.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.matches('input:not([type="checkbox"]):not([type="radio"])') && state.step !== 5) {
+      e.preventDefault();
+      if (typeof state.step === 'number' && state.step < 5) $('[data-next]').click();
+    }
+  });
+
+  // Historial del navegador (atrás/adelante)
+  window.addEventListener('popstate', (e) => {
+    depth = (e.state && e.state.depth) || 0;
+    let step = e.state && e.state.step;
+    if (!step) step = 1;
+    if (step === 'success' && state.step !== 'success') step = maxReachable();
+    if (typeof step === 'number') step = Math.min(step, maxReachable());
+    goTo(step, { push: false });
+  });
+
+  /* ---------- Inicio: borrador + parámetros de la URL ---------- */
+  function init() {
+    const draft = store.load();
+    if (draft && typeof draft === 'object') state = { ...blank(), ...draft, details: { ...(draft.details || {}) } };
+    if (state.step === 'success') state.step = 1;
+
+    const params = new URLSearchParams(location.search);
+    const svcParam = params.get('sesion');
+    const pkgParam = params.get('paquete');
+    let startStep = null;
+    if (svcParam) {
+      const s = DATA.SERVICES.find((x) => x.slug === normalize(svcParam));
+      if (s) {
+        if (state.service !== s.slug) { state.service = s.slug; state.pkg = null; state.details = {}; state.time = null; }
+        state.category = 'todas';
+        const p = pkgParam ? findPackage(s, pkgParam) : null;
+        if (p) state.pkg = p.slug;
+        else if (s.packages.length === 1) state.pkg = s.packages[0].slug;
+        startStep = state.pkg ? 3 : 2;
+      }
+    }
+    // ?temporada=<slug>: no hay paquetes de temporada en el catálogo (precios por confirmar);
+    // se inicia en el paso 1 sin preselección.
+
+    // Fecha guardada ya no válida
+    if (state.date && dayStatus(state.date) !== 'available') { state.date = null; state.time = null; }
+    if (state.viewMonth && (state.viewMonth < MIN_MONTH || state.viewMonth > MAX_MONTH)) state.viewMonth = null;
+
+    // Los parámetros ya se aplicaron: se quitan para que recargar no deshaga cambios posteriores
+    if (svcParam || pkgParam || params.has('temporada')) {
+      const clean = new URL(location.href);
+      ['sesion', 'paquete', 'temporada'].forEach((k) => clean.searchParams.delete(k));
+      history.replaceState(history.state, '', clean);
+    }
+
+    const pasoParam = Number(params.get('paso'));
+    let step = startStep || (pasoParam >= 1 && pasoParam <= 5 ? pasoParam : state.step) || 1;
+    if (typeof step !== 'number') step = 1;
+    step = Math.min(step, maxReachable());
+    goTo(step, { push: false, focus: false });
+  }
+
+  init();
+})();

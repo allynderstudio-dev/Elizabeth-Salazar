@@ -1,0 +1,303 @@
+/* Base, tipografía, layout y botones (estilos de texto de Figma) */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--header-height);
+}
+
+body {
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 26px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body.is-locked {
+  overflow: hidden;
+}
+
+::selection {
+  background: var(--color-background-warm);
+  color: var(--color-text-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-interactive-primary);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--spacing-16);
+  top: -100px;
+  z-index: 100;
+  padding: var(--spacing-12) var(--spacing-16);
+  background: var(--color-interactive-primary);
+  color: var(--color-background-primary);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 15px;
+  border-radius: var(--radius-small);
+}
+.skip-link:focus { top: var(--spacing-16); }
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Tipografía ---------- */
+.t-eyebrow {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.t-display-lg {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 64px;
+  line-height: 72px;
+  letter-spacing: -0.01em;
+}
+
+.t-display-md {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 56px;
+  letter-spacing: -0.005em;
+}
+
+.t-h1 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 48px;
+  letter-spacing: -0.005em;
+}
+
+.t-h2 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 38px;
+}
+
+.t-h3 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 30px;
+}
+
+.t-price {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.t-script {
+  font-family: var(--font-script);
+  font-weight: 400;
+  font-size: 64px;
+  line-height: 72px;
+}
+
+.t-body-lg {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 30px;
+  color: var(--color-text-secondary);
+}
+
+.t-body {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--color-text-secondary);
+}
+
+.t-body-sm {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--color-text-muted);
+}
+
+.t-label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: 0.005em;
+}
+
+.t-label-sm {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.005em;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Layout ---------- */
+.section {
+  padding: var(--layout-section) var(--layout-padding);
+  background: var(--color-background-primary);
+}
+
+.section--warm {
+  background: var(--color-background-warm);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--layout-container);
+  margin-inline: auto;
+}
+
+/* Encabezado de sección: eyebrow + título + texto */
+.section-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  max-width: 640px;
+}
+
+.section-heading__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.section-heading__title {
+  color: var(--color-text-primary);
+}
+
+.heading-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-24);
+}
+
+/* Foto con recorte tipo object-fit: cover */
+.photo {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-background-warm);
+}
+
+.photo > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  height: 48px;
+  padding: 0 var(--spacing-24);
+  border-radius: var(--radius-small);
+  border: var(--border-width-default) solid transparent;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+  transition: background-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease);
+}
+
+.btn img {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.btn--primary {
+  background: var(--color-interactive-primary);
+  color: var(--color-background-primary);
+}
+.btn--primary:hover {
+  background: #5c4f4a;
+}
+
+.btn--secondary {
+  border-color: var(--color-border-strong);
+}
+.btn--secondary:hover {
+  background: rgba(71, 60, 56, 0.06);
+}
+
+.btn--text {
+  padding: 0 var(--spacing-4);
+}
+.btn--text:hover span {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.btn:hover img[src*='arrow-right'] {
+  transform: translateX(3px);
+}
+
+/* Botón en superficie oscura */
+.btn--on-dark.btn--secondary {
+  border-color: var(--on-dark-border-strong);
+  color: var(--on-dark-text-primary);
+}
+.btn--on-dark.btn--secondary:hover {
+  background: rgba(245, 243, 239, 0.08);
+}
+
+/* Botón de icono (44 × 44) */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-small);
+  flex-shrink: 0;
+  transition: background-color var(--duration-fast) var(--ease);
+}
+.icon-btn img {
+  width: 24px;
+  height: 24px;
+}
+.icon-btn--outline {
+  border: var(--border-width-default) solid var(--color-border-default);
+}
+.icon-btn:hover {
+  background: rgba(71, 60, 56, 0.06);
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

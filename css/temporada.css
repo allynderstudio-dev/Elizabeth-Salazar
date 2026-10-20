@@ -1,0 +1,686 @@
+/* Temporada (temporada.html) y plantilla de temporada (temporada-detalle.html)
+   Figma: 27:12873 / 27:12906 (listado), 27:12930 (estado Reservas abiertas), 27:20198 / 27:20254 (plantilla) */
+
+/* ========== Componentes locales ========== */
+
+/* Badge (pill): Figma "Badge" / "Seasonal status" */
+.season-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  align-self: flex-start;
+  padding: var(--spacing-4) var(--spacing-12);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+.season-badge img {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+/* Estado "Reservas abiertas" / fechas: borde fuerte */
+.season-badge--strong {
+  border-color: var(--color-border-strong);
+}
+/* Badge de campaña (Seasonal): marrón cálido, texto crema, sin borde */
+.season-badge--seasonal {
+  border: 0;
+  background: var(--color-text-secondary);
+  color: var(--color-background-primary);
+}
+
+/* ========== temporada.html ========== */
+
+/* 01 Hero */
+.temp-hero {
+  padding: var(--spacing-80) var(--layout-padding) var(--spacing-64);
+}
+.temp-hero__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+}
+.temp-hero__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.temp-hero__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.temp-hero__title {
+  max-width: 760px;
+  color: var(--color-text-primary);
+}
+.temp-hero__body {
+  max-width: 640px;
+}
+
+/* Índice de temporadas */
+.season-index {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4) var(--spacing-8);
+  padding-top: var(--spacing-24);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.season-index__label {
+  white-space: nowrap;
+}
+.season-index__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4) var(--spacing-8);
+}
+
+/* 02–07 Seasonal Section */
+.season {
+  padding: var(--spacing-80) var(--layout-padding);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+  background: var(--color-background-primary);
+}
+.season.section--warm {
+  background: var(--color-background-warm);
+}
+.season__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+}
+/* Layout=End: identidad a la derecha */
+.season--end .season__row {
+  flex-direction: row-reverse;
+}
+.season__identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-16);
+  width: 520px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.season__number {
+  color: var(--color-text-muted);
+}
+.season__content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-32);
+}
+.season__text {
+  max-width: 600px;
+  color: var(--color-text-primary);
+}
+.season__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+}
+.season__note {
+  max-width: 600px;
+  color: var(--color-text-secondary);
+}
+.season__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+/* 08 Sesiones de todo el año */
+.temp-more {
+  padding: var(--spacing-96) var(--layout-padding);
+  background: var(--color-background-dark);
+}
+.temp-more__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-80);
+}
+.temp-more__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  max-width: 560px;
+}
+.temp-more__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.temp-more .t-eyebrow {
+  color: var(--on-dark-text-secondary);
+}
+.temp-more__title {
+  color: var(--on-dark-text-primary);
+}
+.temp-more__body {
+  color: var(--on-dark-text-secondary);
+}
+.temp-more__actions {
+  flex-shrink: 0;
+}
+.temp-more :focus-visible {
+  outline-color: var(--on-dark-text-primary);
+}
+
+/* ========== temporada-detalle.html (plantilla) ========== */
+
+/* 01 Seasonal Hero */
+.tdet-hero {
+  padding: var(--spacing-48) var(--layout-padding) var(--spacing-96);
+}
+.tdet-hero__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-80);
+}
+.tdet-hero__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-24);
+}
+.tdet-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+}
+.tdet-hero__headline {
+  max-width: 600px;
+  color: var(--color-text-primary);
+}
+.tdet-hero__body {
+  max-width: 560px;
+}
+.tdet-hero__price {
+  color: var(--color-text-primary);
+}
+.tdet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-16);
+}
+.tdet-hero__photo {
+  width: 520px;
+  height: 650px;
+  flex-shrink: 0;
+}
+
+/* Espacio de foto pendiente (Image Placeholder) */
+.photo-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  overflow: hidden;
+  background: var(--color-background-warm);
+}
+.photo-pending > img:not(.photo-pending__icon) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-pending__icon {
+  width: 32px;
+  height: 32px;
+}
+.photo-pending__label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+.photo-pending__label--short {
+  display: none;
+}
+
+/* 02 Photography */
+.tdet-photos {
+  padding: var(--spacing-48) var(--layout-padding) var(--layout-section);
+}
+.tdet-photos__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+}
+.tdet-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.tdet-heading__title {
+  color: var(--color-text-primary);
+}
+.tdet-photos__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-40);
+}
+.tdet-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.tdet-card .photo-pending {
+  aspect-ratio: 320 / 400;
+}
+.tdet-card figcaption {
+  color: var(--color-text-muted);
+}
+
+/* 03 Package & Dates */
+.tdet-package {
+  padding: var(--layout-section) var(--layout-padding);
+}
+.tdet-package__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+}
+.tdet-package__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+  flex-shrink: 0;
+  width: 400px;
+}
+.tdet-dates {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-24);
+}
+.tdet-dates__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+}
+.tdet-dates__note {
+  color: var(--color-text-secondary);
+}
+
+/* Package Card */
+.package-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+  padding: var(--spacing-32);
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-small);
+  background: #fff;
+}
+.package-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.package-card__title {
+  color: var(--color-text-primary);
+}
+.package-card__price-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.package-card__price {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 40px;
+  color: var(--color-text-primary);
+}
+.package-card__details,
+.package-card__includes {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--spacing-24);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.package-card__details {
+  gap: var(--spacing-12);
+}
+.package-card__includes {
+  gap: var(--spacing-8);
+}
+.package-card .meta-item {
+  padding: 0;
+  border-bottom: 0;
+}
+.package-card .feature-list {
+  gap: var(--spacing-8);
+}
+/* Figma: Spacer de 0,01 px antes del CTA = un gap extra de 24 px */
+.package-card .btn {
+  width: 100%;
+  margin-top: var(--spacing-24);
+}
+
+/* Notice (Info) */
+.notice {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  overflow: hidden;
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-small);
+  background: #fff;
+}
+.notice__bar {
+  width: 4px;
+  flex-shrink: 0;
+  background: #3b5b78;
+}
+.notice__content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16) var(--spacing-24) var(--spacing-16) var(--spacing-16);
+}
+.notice__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.notice__icon img {
+  width: 20px;
+  height: 20px;
+}
+.notice__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.notice__title {
+  color: var(--color-text-primary);
+}
+.notice__body {
+  color: var(--color-text-secondary);
+}
+
+/* 04 Included & Preparation */
+.tdet-checklists {
+  padding: var(--layout-section) var(--layout-padding);
+}
+.tdet-checklists__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+}
+.checklist {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.checklist__title {
+  color: var(--color-text-primary);
+}
+.checklist .feature-list {
+  gap: var(--spacing-16);
+}
+
+/* 05 Booking CTA */
+.tdet-cta {
+  padding: var(--layout-section) var(--layout-padding);
+}
+.tdet-cta__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-24);
+  text-align: center;
+}
+.tdet-cta__title {
+  color: var(--color-text-primary);
+}
+.tdet-cta .tdet-actions {
+  justify-content: center;
+}
+
+/* ========== Responsive ========== */
+
+/* Desktop fluido (derivado) */
+@media (max-width: 1279px) {
+  .season__row {
+    gap: var(--spacing-64);
+  }
+  .season__identity {
+    width: 40%;
+  }
+  .temp-more__inner {
+    gap: var(--spacing-48);
+  }
+  .tdet-hero__inner {
+    gap: var(--spacing-64);
+  }
+  .tdet-hero__photo {
+    width: 42%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+  }
+  .tdet-package__inner,
+  .tdet-checklists__inner {
+    gap: var(--spacing-64);
+  }
+  .tdet-package__col {
+    width: 380px;
+  }
+}
+
+/* Tablet (derivado de desktop + mobile) */
+@media (max-width: 1023px) {
+  .season__row,
+  .season--end .season__row {
+    flex-direction: column;
+    gap: var(--spacing-32);
+  }
+  .season__identity {
+    width: auto;
+  }
+  .temp-more__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-32);
+  }
+  .tdet-hero__inner {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: var(--spacing-40);
+  }
+  .tdet-hero__photo {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+  }
+  .tdet-photos__grid {
+    gap: var(--spacing-24);
+  }
+  .tdet-package__inner {
+    flex-direction: column;
+    gap: var(--spacing-48);
+  }
+  .tdet-package__col {
+    width: 100%;
+    max-width: 480px;
+  }
+  .tdet-dates {
+    width: 100%;
+  }
+  .tdet-checklists__inner {
+    gap: var(--spacing-40);
+  }
+}
+
+/* Mobile (Figma 390) */
+@media (max-width: 767px) {
+  /* --- temporada.html --- */
+  .temp-hero {
+    padding: var(--spacing-32) var(--layout-padding) var(--spacing-40);
+  }
+  /* El índice de temporadas no aparece en el frame mobile */
+  .season-index {
+    display: none;
+  }
+
+  .season {
+    padding: var(--spacing-48) var(--layout-padding);
+  }
+  .season__row,
+  .season--end .season__row {
+    gap: var(--spacing-24);
+  }
+  .season__text {
+    max-width: none;
+  }
+  .season__actions {
+    width: 100%;
+  }
+
+  .temp-more {
+    padding: var(--layout-section) var(--layout-padding);
+  }
+  .temp-more__inner {
+    align-items: stretch;
+    gap: var(--spacing-24);
+  }
+  .temp-more__title.t-h2 {
+    font-size: 26px;
+    line-height: 34px;
+  }
+
+  /* --- temporada-detalle.html --- */
+  .tdet-hero {
+    padding: 0 0 var(--layout-section);
+  }
+  .tdet-hero__inner {
+    gap: 0;
+  }
+  .tdet-hero__photo {
+    max-width: none;
+    aspect-ratio: 320 / 400;
+  }
+  /* Figma mobile: el bloque de texto del hero no tiene separación entre elementos */
+  .tdet-hero__text {
+    gap: 0;
+    padding: var(--spacing-24) var(--layout-padding) 0;
+  }
+  .tdet-hero .tdet-actions {
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+  }
+  .tdet-actions .btn {
+    width: 100%;
+  }
+
+  .tdet-photos {
+    padding: var(--spacing-24) var(--layout-padding) var(--layout-section);
+  }
+  .tdet-photos__inner {
+    gap: var(--spacing-24);
+  }
+  .tdet-heading {
+    gap: var(--spacing-8);
+  }
+  .tdet-photos__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-20, 20px);
+  }
+  /* Figma mobile muestra solo dos fotos */
+  .tdet-card:nth-child(n + 3) {
+    display: none;
+  }
+  .photo-pending__label--long {
+    display: none;
+  }
+  .photo-pending__label--short {
+    display: inline;
+  }
+  .tdet-hero__photo .photo-pending__label--long {
+    display: inline;
+  }
+  .tdet-hero__photo .photo-pending__label--short {
+    display: none;
+  }
+
+  .tdet-package__inner {
+    gap: var(--spacing-24);
+  }
+  .tdet-package__col {
+    max-width: none;
+    gap: var(--spacing-24);
+  }
+  .tdet-package .tdet-heading__title.t-h2,
+  .tdet-dates .tdet-heading__title.t-h2 {
+    font-size: 26px;
+    line-height: 34px;
+  }
+  .tdet-dates .t-eyebrow {
+    display: none;
+  }
+  .tdet-dates__list {
+    gap: var(--spacing-8);
+  }
+  .package-card__title.t-h3,
+  .checklist__title.t-h3 {
+    font-size: 22px;
+    line-height: 30px;
+  }
+
+  .tdet-checklists__inner {
+    flex-direction: column;
+    gap: var(--spacing-40);
+  }
+  .checklist {
+    width: 100%;
+  }
+
+  .tdet-cta__inner {
+    align-items: stretch;
+    gap: var(--spacing-16);
+    text-align: left;
+  }
+  .tdet-cta .tdet-actions {
+    flex-direction: column;
+    gap: var(--spacing-16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-index__link {
+    transition: none;
+  }
+}

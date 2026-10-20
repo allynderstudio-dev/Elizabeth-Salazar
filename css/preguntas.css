@@ -1,0 +1,250 @@
+/* Preguntas y políticas — Figma 27:19528 (desktop 1440) y 27:19620 (mobile 390) */
+
+/* ---------- 01 Hero ---------- */
+.help-hero {
+  padding-top: var(--spacing-64);
+  padding-bottom: var(--spacing-64);
+}
+
+/* ---------- 02 Temas ---------- */
+.topics {
+  padding-top: var(--spacing-48);
+}
+.topics__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+}
+
+/* Navegación de temas (sticky + scrollspy en js/preguntas.js) */
+.topic-nav {
+  position: sticky;
+  top: calc(var(--header-height) + var(--spacing-32));
+  width: 300px;
+  flex-shrink: 0;
+}
+.topic-nav .nav-link[aria-current='true']::after {
+  transform: scaleX(1);
+}
+
+.topics__content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-64);
+}
+
+.topic {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  padding-top: var(--spacing-8);
+}
+.topic__title {
+  color: var(--color-text-primary);
+}
+.topic__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+}
+.topic__group--loose {
+  gap: var(--spacing-32);
+}
+.topic__group--tight {
+  gap: var(--spacing-12);
+}
+
+/* Policy Block */
+.policy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-24);
+  background: #fff;
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-small);
+}
+.policy__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  color: var(--color-text-primary);
+}
+.policy__header img {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+/* Párrafos separados por una línea en blanco (26 px), como en Figma */
+.policy__text {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* Checklist */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  color: var(--color-text-primary);
+}
+.checklist .feature-list {
+  gap: var(--spacing-16);
+}
+
+/* Notice · Info */
+.notice {
+  display: flex;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16) var(--spacing-24) var(--spacing-16) 20px; /* 4 px barra + 16 px */
+  background: #fff;
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-small);
+  box-shadow: inset 4px 0 0 #3b5b78; /* barra de tipo (color feedback info de Figma) */
+}
+.notice__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.notice__icon img {
+  width: 20px;
+  height: 20px;
+}
+.notice__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.notice__text .t-label {
+  color: var(--color-text-primary);
+}
+.notice__text .t-body-sm {
+  color: var(--color-text-secondary);
+}
+
+/* FAQ a todo el ancho de la columna (el componente compartido mide 720 px) */
+.topic .faq-list {
+  width: 100%;
+}
+
+/* Enlaces a las sesiones */
+.service-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-24) var(--spacing-32);
+  align-items: start;
+}
+.service-links__category {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+}
+.service-links__category ul {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ---------- 03 Contacto ---------- */
+.help-contact__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-40);
+}
+.help-contact__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.help-contact__title {
+  color: var(--color-text-primary);
+}
+.help-contact__actions {
+  display: flex;
+  gap: var(--spacing-16);
+  flex-shrink: 0;
+}
+
+/* ---------- Desktop fluido ---------- */
+@media (max-width: 1279px) {
+  .topics__inner {
+    gap: var(--spacing-48);
+  }
+  .topic-nav {
+    width: 240px;
+  }
+}
+
+/* ---------- Tablet: sin navegación lateral (como en mobile) ---------- */
+@media (max-width: 1023px) {
+  .topic-nav {
+    display: none;
+  }
+  .help-contact__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-32);
+  }
+}
+
+/* ---------- Mobile (Figma 390) ---------- */
+@media (max-width: 767px) {
+  .help-hero {
+    padding-top: var(--spacing-32);
+    padding-bottom: var(--spacing-24);
+  }
+
+  .topics {
+    padding-top: var(--spacing-24);
+  }
+  .topics__content {
+    gap: var(--spacing-48);
+  }
+  .topic__title.t-h2 {
+    font-size: 26px;
+    line-height: 34px;
+  }
+  .topic__group--loose {
+    gap: var(--spacing-16);
+  }
+  /* Figma mantiene Heading/H3 (22/30) en Policy Block y Checklist en mobile */
+  .policy__header .t-h3,
+  .checklist .t-h3 {
+    font-size: 22px;
+    line-height: 30px;
+  }
+  .service-links {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-24);
+  }
+  .service-links .btn {
+    white-space: normal;
+    text-align: left;
+  }
+
+  .help-contact__inner {
+    align-items: stretch;
+    gap: var(--spacing-16);
+  }
+  .help-contact__text {
+    gap: var(--spacing-16);
+  }
+  .help-contact__actions {
+    flex-direction: column;
+    gap: var(--spacing-16);
+  }
+  .help-contact__actions .btn {
+    width: 100%;
+  }
+}

@@ -1,0 +1,500 @@
+/* Responsive
+   ≥1280  diseño desktop de Figma (contenedor 1280)
+   1024–1279  desktop fluido (derivado)
+   768–1023   tablet (derivado de desktop + mobile)
+   ≤767       mobile de Figma (frame 390) */
+
+/* ---------- Desktop fluido ---------- */
+@media (max-width: 1279px) {
+  .hero {
+    padding-left: var(--layout-padding);
+    gap: var(--spacing-48);
+  }
+  .hero__content {
+    width: clamp(400px, 36vw, 520px);
+  }
+  .hero__headline.t-display-lg {
+    font-size: 56px;
+    line-height: 64px;
+  }
+  .brand-intro__inner,
+  .about__inner,
+  .final-cta__inner,
+  .faq__inner {
+    gap: var(--spacing-64);
+  }
+  .brand-intro__photo,
+  .selector__photo {
+    width: 40%;
+  }
+  .about__portrait,
+  .final-cta__photo {
+    width: 38%;
+  }
+  .selector {
+    gap: var(--spacing-48);
+  }
+  .selector__tabs {
+    flex-wrap: wrap;
+  }
+  .faq-list {
+    width: 60%;
+  }
+}
+
+/* ---------- Header: menú colapsado ---------- */
+@media (max-width: 959px) {
+  .site-nav {
+    display: none;
+  }
+  .menu-toggle {
+    display: inline-flex;
+    margin-right: -10px;
+  }
+}
+
+@media (min-width: 960px) {
+  .mobile-menu {
+    display: none;
+  }
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1023px) {
+  .t-display-lg { font-size: 48px; line-height: 56px; }
+  .hero__headline.t-display-lg { font-size: 48px; line-height: 56px; }
+  .t-display-md { font-size: 40px; line-height: 48px; }
+  .t-h1 { font-size: 34px; line-height: 42px; }
+
+  /* Hero apilado: texto → carrusel → info de la diapositiva */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-24);
+    padding: var(--spacing-40) 0 var(--layout-section);
+    --slide-w: min(56vw, 480px);
+    --slide-w-sm: var(--slide-w);
+  }
+  .hero__content {
+    display: contents;
+  }
+  .hero__brand {
+    padding-inline: var(--layout-padding);
+    gap: var(--spacing-24);
+  }
+  .carousel {
+    padding-left: var(--layout-padding);
+  }
+  .carousel__track {
+    align-items: flex-start;
+    gap: var(--spacing-12);
+  }
+  .carousel__slide figcaption {
+    display: none;
+  }
+  .slide-info {
+    order: 3;
+    margin-inline: var(--layout-padding);
+  }
+
+  .brand-intro__inner,
+  .about__inner,
+  .final-cta__inner {
+    gap: var(--spacing-40);
+  }
+  .brand-intro__photo,
+  .selector__photo,
+  .about__portrait,
+  .final-cta__photo {
+    width: 42%;
+  }
+  .brand-intro__secondary {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: var(--spacing-8);
+  }
+  .brand-intro__secondary .photo {
+    width: 100%;
+    max-width: none;
+  }
+
+  .heading-row {
+    flex-wrap: wrap;
+  }
+  .service-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--spacing-48);
+  }
+
+  .selector {
+    gap: var(--spacing-40);
+  }
+  .selector__tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: var(--spacing-12);
+  }
+  .selector__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .about__experience {
+    flex-direction: column;
+    gap: var(--spacing-24);
+  }
+
+  .seasons__inner {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'intro' 'calendar' 'actions';
+    grid-template-rows: auto;
+  }
+
+  .faq__inner {
+    flex-direction: column;
+    gap: var(--spacing-24);
+  }
+  .faq-list {
+    width: 100%;
+  }
+
+  .steps {
+    gap: var(--spacing-24);
+  }
+
+  .site-footer__columns {
+    flex-wrap: wrap;
+    row-gap: var(--spacing-48);
+  }
+  .site-footer__brand {
+    flex-basis: 100%;
+  }
+}
+
+/* ---------- Mobile (Figma 390) ---------- */
+@media (max-width: 767px) {
+  /* Estilos de texto Mobile/* */
+  .t-display-lg { font-size: 40px; line-height: 48px; letter-spacing: -0.005em; }
+  .hero__headline.t-display-lg { font-size: 40px; line-height: 48px; }
+  .t-display-md { font-size: 34px; line-height: 42px; }
+  .t-h1 { font-size: 30px; line-height: 38px; letter-spacing: 0; }
+  .t-h2 { font-size: 22px; line-height: 28px; }
+  .t-h3 { font-size: 20px; line-height: 28px; }
+  .t-script { font-size: 44px; line-height: 52px; }
+  .t-body-lg { font-size: 16px; line-height: 26px; }
+  .t-body-lg--keep { font-size: 18px; line-height: 30px; }
+
+  .btn--block-mobile {
+    width: 100%;
+  }
+
+  /* Espaciados de encabezado en mobile (Figma: 8 entre eyebrow y título, 12 al texto) */
+  .section-heading {
+    gap: var(--spacing-12);
+  }
+  .section-heading__titles {
+    gap: var(--spacing-8);
+  }
+
+  /* 01 Hero */
+  .hero {
+    padding: var(--spacing-24) 0 var(--spacing-48);
+    gap: var(--spacing-24);
+    /* 330 px a 390: deja asomar la siguiente diapositiva */
+    --slide-w: calc(100vw - 3 * var(--layout-padding));
+  }
+  .hero__brand {
+    gap: var(--spacing-24);
+  }
+  .hero__titles {
+    gap: var(--spacing-8);
+  }
+  .hero__actions-group {
+    gap: var(--spacing-8);
+  }
+  .hero__actions {
+    align-items: center;
+  }
+  .hero__reserve-desktop {
+    display: none;
+  }
+  .hero__reserve-mobile {
+    display: inline-flex;
+  }
+  .carousel {
+    gap: var(--spacing-12);
+    padding-right: 0;
+  }
+  .carousel-controls__counter {
+    display: none;
+  }
+  .carousel-controls {
+    justify-content: space-between;
+    padding-right: var(--layout-padding);
+  }
+  .slide-info {
+    gap: var(--spacing-12);
+    padding-top: var(--spacing-16);
+    border-top: 0;
+  }
+  .slide-info__copy .t-label-sm {
+    display: none;
+  }
+
+  /* 02 Brand Intro: texto primero, fotos apiladas */
+  .brand-intro {
+    padding-top: var(--layout-section);
+  }
+  .brand-intro__inner {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: var(--spacing-16);
+  }
+  .brand-intro__text {
+    display: contents;
+  }
+  .brand-intro__copy {
+    order: 2;
+    gap: var(--spacing-12);
+    margin-bottom: var(--spacing-16);
+  }
+  .brand-intro__secondary {
+    order: 0;
+  }
+  .brand-intro__photo {
+    order: 1;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+  }
+
+  /* 03 Explore Sessions */
+  .explore__inner {
+    gap: var(--spacing-32);
+  }
+  .explore__more-desktop {
+    display: none;
+  }
+  .explore__more-mobile {
+    display: flex;
+  }
+  .service-cards {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--spacing-48);
+  }
+  .service-card .photo,
+  .service-card .photo--tall {
+    aspect-ratio: 3 / 2;
+  }
+
+  /* 04 Session Showcase */
+  .showcase__inner {
+    gap: var(--spacing-32);
+  }
+  .selector {
+    flex-direction: column;
+    gap: 0;
+  }
+  .selector__photo {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+  }
+  .selector__panel {
+    display: contents;
+  }
+  .selector__tabs {
+    order: 1;
+    width: calc(100% + var(--layout-padding));
+    margin-top: var(--spacing-24);
+    padding-top: var(--spacing-16);
+    padding-right: var(--layout-padding);
+    border-top: 0;
+  }
+  .selector__panel-body {
+    order: 2;
+    width: 100%;
+    margin-top: var(--spacing-24);
+    gap: var(--spacing-24);
+  }
+  .selector__identity {
+    gap: var(--spacing-8);
+  }
+  .selector__info {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: var(--spacing-16);
+  }
+  .selector .meta-item {
+    border-bottom-color: var(--color-border-default);
+  }
+  .showcase__inner > .btn {
+    width: 100%;
+  }
+
+  /* 05 Featured Photography */
+  .featured__inner {
+    gap: var(--spacing-24);
+  }
+  .featured__more-desktop {
+    display: none;
+  }
+  .featured__more-mobile {
+    display: flex;
+  }
+  .mosaic {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'reveal reveal'
+      'bath crown'
+      'bees bees';
+    column-gap: var(--spacing-20, 20px);
+    row-gap: var(--spacing-24);
+  }
+  .image-card--bath .photo,
+  .image-card--crown .photo {
+    aspect-ratio: 2 / 3;
+  }
+
+  /* 06 The Experience */
+  .experience__inner {
+    gap: var(--spacing-32);
+  }
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-32);
+  }
+  .step {
+    padding-top: 0;
+    gap: var(--spacing-8);
+  }
+  .booking-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-12);
+    padding-top: var(--spacing-24);
+  }
+
+  /* 07 About Ely */
+  .about__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-40);
+  }
+  .about__portrait {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+  }
+  .about__copy .t-body-lg {
+    font-size: 18px;
+    line-height: 30px;
+  }
+  .about__experience {
+    gap: 0;
+  }
+
+  /* 08 Temporadas */
+  .seasons {
+    padding-block: var(--layout-section);
+  }
+  .seasons__inner {
+    row-gap: var(--spacing-32);
+  }
+  .seasons__intro .section-heading__titles {
+    gap: var(--spacing-12);
+  }
+  .season-row {
+    padding: var(--spacing-12) 0;
+  }
+
+  /* 09 FAQ */
+  .faq__intro {
+    gap: var(--spacing-24);
+  }
+
+
+  /* 10 Final CTA */
+  .final-cta__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-24);
+  }
+  .final-cta__photo {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+  }
+  .final-cta__actions {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--spacing-12);
+  }
+  .final-cta__actions .btn {
+    width: 100%;
+  }
+  .final-cta__text > .t-label-sm {
+    white-space: normal;
+  }
+
+  /* Footer apilado */
+  .site-footer {
+    padding: var(--spacing-64) var(--layout-padding) var(--spacing-32);
+  }
+  .site-footer__inner {
+    gap: var(--spacing-40);
+  }
+  .site-footer__columns {
+    flex-direction: column;
+    gap: var(--spacing-40);
+  }
+  .site-footer__brand .btn {
+    width: 100%;
+  }
+  .site-footer__legal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-12);
+  }
+  .site-footer__legal p:first-child {
+    min-height: 0;
+  }
+  .contact-link {
+    white-space: normal;
+  }
+}
+
+/* ---------- Componentes compartidos (páginas interiores) ---------- */
+@media (max-width: 1023px) {
+  .page-hero__photo { width: 40%; }
+  .service-card--horizontal { grid-template-columns: 45% minmax(0, 1fr); column-gap: var(--spacing-32); }
+}
+@media (max-width: 767px) {
+  .page-hero {
+    padding: var(--spacing-32) var(--layout-padding) var(--spacing-8);
+  }
+  .page-hero__photo { display: none; }
+  .page-hero__copy .section-heading__titles,
+  .page-hero__titles { gap: var(--spacing-8); }
+  .service-card--horizontal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-16);
+  }
+  .service-card--horizontal .photo { width: 100%; aspect-ratio: 1 / 1; }
+  .service-card--horizontal .service-card__title { font-weight: 600; }
+  /* Figma: el título de la Service Card conserva Heading/H3 (22/30) en mobile */
+  .service-card__title.t-h3,
+  .service-card--horizontal .service-card__title { font-size: 22px; line-height: 30px; }
+  .service-card--horizontal .service-card__body > .t-body { font-size: 16px; line-height: 26px; }
+  .service-card--horizontal .service-card__footer { justify-content: space-between; }
+  .cta-band__inner { gap: var(--spacing-24); }
+  .cta-band__actions { width: 100%; gap: var(--spacing-16); }
+  .cta-band__actions > .btn { width: 100%; }
+  .help-line { flex-direction: column; row-gap: var(--spacing-4); }
+  /* Filter Chip: una fila con scroll horizontal en mobile (frame 27:2909 y descripción del componente) */
+  .filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: calc(-1 * var(--layout-padding));
+    padding-inline: var(--layout-padding);
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+}

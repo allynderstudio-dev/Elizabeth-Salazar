@@ -1,0 +1,86 @@
+/* Design tokens extraídos de Figma (Aldecoa | Website · Homepage) */
+:root {
+  /* Color */
+  --color-background-primary: #f5f3ef;
+  --color-background-warm: #eee2d6;
+  --color-background-dark: #473c38;
+  --color-text-primary: #473c38;
+  --color-text-secondary: #7a5944;
+  --color-text-muted: #6e6158;
+  --color-border-subtle: #d2bab1;
+  --color-border-default: #9c8573;
+  --color-border-strong: #473c38;
+  --color-interactive-primary: #473c38;
+  --color-logo: #0f0f0f;
+  --color-background-secondary: #ffffff;
+  --color-background-inverse: #2e2724;
+  --color-text-disabled: #9c8573;
+
+  /* Feedback */
+  --color-feedback-info: #3b5b78;
+  --color-feedback-warning: #8a5a12;
+  --color-feedback-error: #a3352b;
+
+  /* Superficie oscura (modo "On dark" del footer) */
+  --on-dark-text-primary: #f5f3ef;
+  --on-dark-text-secondary: #eee2d6;
+  --on-dark-text-muted: #d2bab1;
+  --on-dark-border-subtle: #5c4f4a;
+  --on-dark-border-strong: #f5f3ef;
+
+  /* Tipografía */
+  --font-serif: 'Bitter', Georgia, serif;
+  --font-sans: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+  --font-script: 'Ms Madi', cursive;
+
+  /* Espaciado */
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+  --spacing-96: 96px;
+
+  /* Layout */
+  --layout-container: 1280px;
+  --layout-padding-desktop: 64px;
+  --layout-padding-mobile: 20px;
+  --layout-section-desktop: 120px;
+  --layout-section-mobile: 64px;
+  --layout-padding: var(--layout-padding-desktop);
+  --layout-section: var(--layout-section-desktop);
+
+  /* Bordes y radios */
+  --border-width-default: 1px;
+  --border-width-strong: 2px;
+  --radius-small: 2px;
+  --radius-pill: 999px;
+
+  /* Header */
+  --header-height: 80px;
+
+  /* Movimiento */
+  --duration-fast: 150ms;
+  --duration-base: 300ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --layout-padding: var(--layout-padding-mobile);
+    --layout-section: var(--layout-section-mobile);
+    --header-height: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}

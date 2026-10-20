@@ -1,0 +1,583 @@
+/* Homepage: secciones 01–10 (Figma node 22:1751 desktop · 22:1941 mobile) */
+
+/* ---------- 01 Hero ---------- */
+.hero {
+  display: flex;
+  align-items: stretch;
+  gap: var(--spacing-64);
+  padding: var(--spacing-48) 0 var(--spacing-96) var(--spacing-80);
+  background: var(--color-background-primary);
+  overflow: hidden;
+  /* Ancho de la diapositiva activa: 560 px a 1440 px */
+  --slide-w: clamp(400px, 38.9vw, 560px);
+  --slide-w-sm: calc(var(--slide-w) * 0.643);
+}
+
+.hero__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--spacing-40);
+  width: 520px;
+  flex-shrink: 0;
+}
+
+.hero__brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+}
+
+.hero__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.hero__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.hero__headline {
+  color: var(--color-text-primary);
+}
+
+.hero__actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.hero__actions {
+  display: flex;
+  gap: var(--spacing-16);
+}
+
+.hero__reserve-mobile {
+  display: none;
+}
+
+.slide-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-16);
+  padding-top: var(--spacing-24);
+  border-top: var(--border-width-default) solid var(--color-border-subtle);
+  transition: opacity var(--duration-base) var(--ease);
+}
+.slide-info.is-fading {
+  opacity: 0;
+}
+.slide-info__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.slide-info__service {
+  color: var(--color-text-primary);
+}
+.slide-info__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.carousel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.carousel__viewport {
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.carousel__track {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-24);
+}
+
+.carousel__slide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  flex-shrink: 0;
+  width: var(--slide-w-sm);
+  cursor: pointer;
+}
+.carousel__slide .photo {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+}
+.carousel__slide figcaption {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.005em;
+  color: var(--color-text-secondary);
+}
+.carousel__slide.is-active {
+  width: var(--slide-w);
+  cursor: default;
+}
+.carousel__slide.is-active figcaption {
+  display: none;
+}
+.carousel__slide.is-entering .photo img {
+  animation: slide-in var(--duration-base) var(--ease);
+}
+@keyframes slide-in {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-16);
+}
+.carousel-controls__counter {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 20px;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.carousel-controls__dots {
+  display: flex;
+}
+.carousel-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 44px;
+}
+.carousel-dot span {
+  display: block;
+  width: 12px;
+  height: 3px;
+  background: var(--color-border-default);
+  transition: width var(--duration-base) var(--ease), background-color var(--duration-base) var(--ease);
+}
+.carousel-dot[aria-current='true'] span {
+  width: 24px;
+  background: var(--color-text-primary);
+}
+.carousel-controls__nav {
+  display: flex;
+  gap: var(--spacing-8);
+}
+
+/* ---------- 02 Brand Intro ---------- */
+.brand-intro {
+  padding-top: var(--spacing-96);
+}
+.brand-intro__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-80);
+}
+.brand-intro__photo {
+  width: 520px;
+  aspect-ratio: 520 / 650;
+  flex-shrink: 0;
+}
+.brand-intro__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-48);
+}
+.brand-intro__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  max-width: 600px;
+}
+.brand-intro__lockup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.brand-intro__script {
+  color: var(--color-text-secondary);
+}
+.brand-intro__title {
+  color: var(--color-text-primary);
+}
+.brand-intro__secondary {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-24);
+  margin: 0;
+}
+.brand-intro__secondary figcaption {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.brand-intro__secondary .photo {
+  width: 450px;
+  max-width: 70%;
+  aspect-ratio: 3 / 2;
+  flex-shrink: 0;
+}
+
+/* ---------- 03 Explore Sessions ---------- */
+.explore__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-48);
+}
+.explore__more-mobile {
+  display: none;
+}
+.service-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-24);
+  align-items: start;
+}
+/* ---------- 04 Session Showcase ---------- */
+.showcase__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-48);
+}
+.selector {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-64);
+  width: 100%;
+}
+.selector__photo {
+  width: 520px;
+  aspect-ratio: 520 / 650;
+  flex-shrink: 0;
+}
+.selector__photo img {
+  transition: opacity var(--duration-base) var(--ease);
+}
+.selector__photo.is-fading img,
+.selector__panel-body.is-fading {
+  opacity: 0;
+}
+.selector__panel {
+  flex: 1 1 0;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+}
+.selector__panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+  transition: opacity var(--duration-base) var(--ease);
+}
+.selector__identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+}
+.selector__info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-40);
+}
+.selector__tabs {
+  display: flex;
+  gap: var(--spacing-16);
+  padding-top: var(--spacing-24);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.selector-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-8);
+  width: 88px;
+  flex-shrink: 0;
+}
+.selector-tab__thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  padding: var(--spacing-4);
+  border: var(--border-width-strong) solid transparent;
+  border-radius: var(--radius-pill);
+  transition: border-color var(--duration-fast) var(--ease);
+}
+.selector-tab__thumb img {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+}
+.selector-tab__label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.005em;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+}
+.selector-tab:hover .selector-tab__thumb {
+  border-color: var(--color-border-subtle);
+}
+.selector-tab[aria-selected='true'] .selector-tab__thumb {
+  border-color: var(--color-interactive-primary);
+}
+.selector-tab[aria-selected='true'] .selector-tab__label {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* ---------- 05 Featured Photography ---------- */
+.featured__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-48);
+}
+.featured__more-mobile {
+  display: none;
+}
+.mosaic {
+  display: grid;
+  grid-template-columns: 600fr 316fr 316fr;
+  grid-template-areas:
+    'bath bees bees'
+    'bath crown reveal';
+  gap: var(--spacing-24);
+  align-items: start;
+}
+.image-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  margin: 0;
+}
+.image-card .photo {
+  width: 100%;
+}
+.image-card--bath { grid-area: bath; }
+.image-card--bath .photo { aspect-ratio: 2 / 3; }
+.image-card--bees { grid-area: bees; }
+.image-card--bees .photo { aspect-ratio: 3 / 2; }
+.image-card--bees img { object-position: center 52%; }
+.image-card--crown { grid-area: crown; }
+.image-card--crown .photo { aspect-ratio: 4 / 5; }
+.image-card--reveal { grid-area: reveal; }
+.image-card--reveal .photo { aspect-ratio: 4 / 5; }
+.image-card--reveal img { object-position: 43% center; }
+
+/* ---------- 06 The Experience ---------- */
+.experience__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-48);
+}
+.experience__inner .section-heading {
+  max-width: 760px;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-40);
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding-top: var(--spacing-24);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.step__number {
+  color: var(--color-text-secondary);
+}
+.step__title {
+  color: var(--color-text-primary);
+}
+.booking-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-40);
+  padding-top: var(--spacing-32);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.booking-info__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+}
+.booking-info__text > img {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.booking-info__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+/* ---------- 07 About Ely ---------- */
+.about__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-80);
+}
+.about__portrait {
+  width: 480px;
+  aspect-ratio: 480 / 600;
+  flex-shrink: 0;
+  background: var(--color-background-warm);
+}
+.about__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-40);
+}
+.about__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-16);
+}
+.about__copy .t-body-lg {
+  color: var(--color-text-primary);
+}
+.about__experience {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-40);
+  width: 100%;
+  padding-top: var(--spacing-24);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.about__highlight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  flex-shrink: 0;
+  color: var(--color-text-primary);
+}
+.about__experience .feature-list {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ---------- 08 Temporadas ---------- */
+.seasons {
+  padding-block: var(--spacing-96);
+}
+.seasons__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 520px);
+  grid-template-areas:
+    'intro calendar'
+    'actions calendar';
+  grid-template-rows: auto 1fr;
+  justify-content: space-between;
+  column-gap: var(--spacing-80);
+  row-gap: var(--spacing-32);
+}
+.seasons__intro {
+  grid-area: intro;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.seasons__intro .t-body-lg {
+  max-width: 520px;
+}
+.seasons__actions {
+  grid-area: actions;
+}
+.season-calendar {
+  grid-area: calendar;
+}
+.season-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-16);
+  padding: var(--spacing-16) 0;
+  border-bottom: var(--border-width-default) solid var(--color-border-default);
+  white-space: nowrap;
+}
+.season-row .t-h3 {
+  color: var(--color-text-primary);
+}
+
+/* ---------- 09 FAQ ---------- */
+.faq__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+}
+.faq__intro {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-32);
+}
+/* ---------- 10 Final CTA ---------- */
+.final-cta__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-80);
+}
+.final-cta__photo {
+  width: 480px;
+  aspect-ratio: 480 / 600;
+  flex-shrink: 0;
+}
+.final-cta__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-24);
+}
+.final-cta__headline {
+  max-width: 640px;
+  color: var(--color-text-primary);
+}
+.final-cta__text .t-body-lg {
+  max-width: 560px;
+}
+.final-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-16);
+}

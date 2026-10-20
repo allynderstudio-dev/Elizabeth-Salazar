@@ -1,0 +1,80 @@
+/* Servicios (Figma 27:2866 desktop · 27:2909 mobile · 27:2947 filter states) */
+
+.services-directory {
+  padding-top: var(--spacing-24);
+}
+
+.services-directory__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+}
+
+.services-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+/* 3+ resultados: filas de tres (400 px a 1280) */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-64) var(--spacing-40);
+  align-items: start;
+}
+
+/* 2 resultados: dos columnas con fotos 3:2 */
+.services-grid[data-count='2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.services-grid[data-count='2'] .service-card .photo {
+  aspect-ratio: 3 / 2;
+}
+
+/* 1 resultado: tarjeta horizontal centrada (840 px) */
+.services-grid[data-count='1'] {
+  grid-template-columns: minmax(0, 840px);
+  justify-content: center;
+}
+
+.services-grid .service-card[hidden] {
+  display: none;
+}
+
+.services-grid.is-filtering {
+  opacity: 0;
+}
+.services-grid {
+  transition: opacity var(--duration-fast) var(--ease);
+}
+
+@media (max-width: 1023px) {
+  .services-grid,
+  .services-grid[data-count='2'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--spacing-48);
+  }
+  .services-grid[data-count='1'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .services-directory {
+    padding-top: var(--spacing-24);
+  }
+  .services-directory__inner {
+    gap: var(--spacing-24);
+  }
+  /* Una columna con fotos cuadradas */
+  .services-grid,
+  .services-grid[data-count='2'] {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--spacing-48);
+  }
+  .services-grid .service-card .photo,
+  .services-grid[data-count='2'] .service-card .photo {
+    aspect-ratio: 1 / 1;
+  }
+}

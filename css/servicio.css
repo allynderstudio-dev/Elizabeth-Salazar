@@ -1,0 +1,714 @@
+/* Servicio · detalle (Figma 27:4175 desktop · 27:4251 mobile · 27:5751 estados)
+   Una sola plantilla para los 11 servicios; los datos vienen de js/services-data.js */
+
+/* Textos que cambian entre desktop y mobile (Figma usa copys distintos) */
+.sd-mobile-only {
+  display: none;
+}
+
+/* Foto pendiente (Figma: «Foto pendiente»): bloque cálido vacío */
+.sd-photo-pending {
+  background: var(--color-background-warm);
+}
+
+/* ---------- 01 Hero ---------- */
+.sd-hero {
+  padding-top: var(--spacing-48);
+  padding-bottom: var(--spacing-96);
+}
+.sd-hero__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-80);
+}
+.sd-hero__text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+}
+.sd-hero__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.sd-hero__titles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+}
+.sd-hero__headline {
+  max-width: 600px;
+  color: var(--color-text-primary);
+}
+.sd-hero__body {
+  max-width: 560px;
+}
+.sd-hero__booking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+  padding-top: var(--spacing-32);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.sd-hero__price {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 var(--spacing-12);
+}
+.sd-hero__price .t-price {
+  color: var(--color-text-primary);
+}
+.sd-hero__actions,
+.sd-cta__actions {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-16);
+}
+.sd-hero__photo {
+  width: 520px;
+  aspect-ratio: 4 / 5;
+  flex-shrink: 0;
+}
+
+/* ---------- 02 La experiencia ---------- */
+.sd-experience {
+  padding-top: var(--spacing-48);
+}
+.sd-experience__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+}
+.sd-experience__heading {
+  width: 480px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.sd-experience__heading .t-h2,
+.sd-faq__titles .t-h2 {
+  color: var(--color-text-primary);
+}
+.sd-experience__body {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-32);
+}
+.sd-experience__details {
+  display: flex;
+  gap: var(--spacing-40);
+}
+.sd-experience__detail {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.sd-experience__detail .t-body {
+  color: var(--color-text-primary);
+}
+
+/* ---------- 03 Storytelling ---------- */
+.sd-story {
+  padding-top: var(--spacing-48);
+}
+.sd-story__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-40);
+}
+.sd-story .t-h1 {
+  color: var(--color-text-primary);
+}
+
+/* Variante con capítulos: texto fijo + columna de fotos */
+.sd-story__layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-40);
+}
+.sd-story__text {
+  position: sticky;
+  top: calc(var(--header-height) + var(--spacing-48));
+  width: 410px;
+  flex-shrink: 0;
+}
+/* Los capítulos se apilan en la misma celda; solo el activo es visible */
+.sd-story__chapters {
+  display: grid;
+}
+.sd-chapter {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  transition: opacity var(--duration-base) var(--ease), visibility 0s linear var(--duration-base);
+}
+.sd-chapter:not(.is-active) {
+  opacity: 0;
+  visibility: hidden;
+}
+.sd-chapter.is-active {
+  transition: opacity var(--duration-base) var(--ease);
+}
+.sd-story__photos {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+}
+.sd-story__wide {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+}
+.sd-story__pair {
+  display: flex;
+  gap: var(--spacing-24);
+}
+.sd-story__portrait {
+  flex: 1 1 0;
+  min-width: 0;
+  aspect-ratio: 4 / 5;
+}
+
+/* Variante simple: encabezado + fila de dos fotos 3:2 */
+.sd-story__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.sd-story__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.sd-story__titles .t-h1 {
+  max-width: 760px;
+}
+.sd-story__heading .t-body-lg {
+  max-width: 640px;
+}
+.sd-story__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-40);
+}
+.sd-story__landscape {
+  aspect-ratio: 3 / 2;
+}
+
+/* 04 Enlace a la galería */
+.sd-story__more {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------- 05 Paquetes ---------- */
+.sd-packages {
+  padding-block: var(--layout-section);
+}
+.sd-packages__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-48);
+}
+.sd-packages__grid {
+  display: grid;
+  gap: var(--spacing-40);
+}
+.sd-packages__grid[data-layout='cols-3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.sd-packages__grid[data-layout='cols-2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+/* Quince años: dos columnas compactas, cada tarjeta con su propia altura */
+.sd-packages__grid[data-layout='masonry'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-16);
+  align-items: start;
+}
+/* Un solo paquete: tarjeta (480) + foto */
+.sd-packages__grid[data-layout='single'] {
+  grid-template-columns: 480px minmax(0, 1fr);
+  gap: var(--spacing-64);
+}
+.sd-packages__photo {
+  height: 100%;
+}
+
+/* Package Card (Figma 27:4102) */
+.package-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+  padding: var(--spacing-32);
+  background: #fff;
+  border: var(--border-width-default) solid var(--color-border-subtle);
+  border-radius: var(--radius-small);
+}
+.package-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.package-card__name {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 30px;
+  color: var(--color-text-primary);
+}
+.package-card__price-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.package-card__price {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 40px;
+  color: var(--color-text-primary);
+}
+.package-card__meta,
+.package-card__block {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--spacing-24);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.package-card__meta {
+  gap: var(--spacing-12);
+}
+.package-card .meta-item {
+  padding: 0;
+  border: 0;
+}
+.package-card__block {
+  gap: var(--spacing-8);
+}
+.package-card .feature-list {
+  gap: var(--spacing-8);
+}
+.package-card__conditions {
+  gap: var(--spacing-16);
+}
+.package-card__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.package-card__small .feature-item {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--color-text-secondary);
+}
+/* En filas, todas las tarjetas igualan su altura y el CTA queda abajo */
+.package-card__spacer {
+  flex: 1 1 0;
+}
+.package-card__cta {
+  width: 100%;
+}
+
+/* ---------- 06 Lo que incluye + 07 Antes de tu sesión ---------- */
+.sd-checklists {
+  padding-bottom: var(--spacing-64);
+}
+.sd-checklists__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+}
+.sd-checklist {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.sd-checklist__title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 30px;
+  color: var(--color-text-primary);
+}
+.sd-checklist .feature-list {
+  gap: var(--spacing-16);
+}
+
+/* ---------- 08 FAQ ---------- */
+.sd-faq {
+  padding-top: var(--spacing-48);
+}
+.sd-faq__inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-80);
+  padding-top: var(--spacing-64);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.sd-faq__intro {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-32);
+}
+.sd-faq__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+/* La pregunta va dentro de un h3: sin esto hereda la negrita del navegador (Figma: Body/Large Regular).
+   Corrección local; el componente compartido .faq-item__question tiene el mismo problema. */
+.sd-faq .faq-item__question {
+  font-weight: 400;
+}
+
+/* ---------- 09 Booking CTA ---------- */
+.sd-cta__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-40);
+}
+.sd-cta__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.sd-cta__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.sd-cta .t-h1 {
+  color: var(--color-text-primary);
+}
+
+/* ---------- Barra de reserva fija (mobile, Figma 27:5766) ---------- */
+.sd-sticky-bar {
+  display: none;
+}
+
+/* ---------- Sesión no encontrada (derivado) ---------- */
+.sd-notfound__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-32);
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+/* Desktop fluido (derivado) */
+@media (max-width: 1279px) {
+  .sd-hero__inner {
+    gap: var(--spacing-64);
+  }
+  .sd-hero__photo {
+    width: 40%;
+  }
+  .sd-experience__inner,
+  .sd-checklists__inner,
+  .sd-faq__inner {
+    gap: var(--spacing-64);
+  }
+  .sd-experience__heading {
+    width: 36%;
+  }
+  .sd-story__text {
+    width: 32%;
+  }
+  .sd-packages__grid[data-layout='single'] {
+    grid-template-columns: 40% minmax(0, 1fr);
+    gap: var(--spacing-48);
+  }
+  .sd-cta__inner {
+    flex-wrap: wrap;
+  }
+}
+
+/* Tablet (derivado de desktop + mobile) */
+@media (max-width: 1023px) {
+  .sd-hero__inner {
+    gap: var(--spacing-40);
+  }
+  .sd-hero__photo {
+    width: 42%;
+  }
+  .sd-hero__actions {
+    flex-wrap: wrap;
+  }
+  .sd-experience__inner {
+    flex-direction: column;
+    gap: var(--spacing-24);
+  }
+  .sd-experience__heading {
+    width: 100%;
+    max-width: 640px;
+  }
+  .sd-story__layout {
+    gap: var(--spacing-32);
+  }
+  .sd-story__text {
+    width: 36%;
+  }
+  .sd-story__pair {
+    gap: var(--spacing-16);
+  }
+  .sd-packages__grid[data-layout='cols-3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sd-packages__grid[data-layout] {
+    gap: var(--spacing-24);
+  }
+  .sd-packages__grid[data-layout='single'] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .sd-checklists__inner {
+    gap: var(--spacing-40);
+  }
+  .sd-faq__inner {
+    flex-direction: column;
+    gap: var(--spacing-32);
+  }
+  .sd-cta__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-32);
+  }
+}
+
+/* Mobile (Figma 390) */
+@media (max-width: 767px) {
+  .sd-desktop-only {
+    display: none;
+  }
+  .sd-mobile-only {
+    display: inline;
+  }
+
+  /* Mobile/Heading/H2 (26/34): experiencia, FAQ y título del storytelling simple */
+  .sd-title-m.t-h2,
+  .sd-title-m.t-h1 {
+    font-size: 26px;
+    line-height: 34px;
+  }
+
+  /* 01 Hero: foto a todo el ancho arriba, texto debajo */
+  .sd-hero {
+    padding: 0 0 var(--layout-section);
+  }
+  .sd-hero__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .sd-hero__photo {
+    order: -1;
+    width: 100%;
+  }
+  .sd-hero__text {
+    gap: var(--spacing-32);
+    padding: var(--spacing-24) var(--layout-padding) 0;
+  }
+  .sd-hero__copy {
+    gap: var(--spacing-12);
+  }
+  .sd-hero__booking {
+    gap: var(--spacing-16);
+    padding-top: var(--spacing-24);
+  }
+  .sd-hero__actions,
+  .sd-cta__actions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: var(--spacing-4);
+  }
+  .sd-hero__actions .btn--primary,
+  .sd-cta__actions .btn--primary {
+    width: 100%;
+  }
+
+  /* 02 La experiencia */
+  .sd-experience {
+    padding-top: var(--spacing-24);
+  }
+  .sd-experience__inner {
+    gap: var(--spacing-12);
+  }
+  .sd-experience__heading {
+    gap: var(--spacing-8);
+  }
+  .sd-experience__details {
+    flex-direction: column;
+    gap: var(--spacing-32);
+  }
+
+  /* 03 Storytelling: sin sticky; cada capítulo sobre sus fotos */
+  .sd-story {
+    padding-top: var(--spacing-24);
+  }
+  .sd-story__inner {
+    gap: var(--spacing-24);
+  }
+  .sd-story--simple .sd-story__inner {
+    gap: var(--spacing-32);
+  }
+  .sd-story__layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-24);
+  }
+  .sd-story__text {
+    position: static;
+    width: 100%;
+  }
+  /* Figma mobile muestra solo el primer capítulo y el par de fotos 4:5 */
+  .sd-chapter:not([data-chapter='0']),
+  .sd-story__wide {
+    display: none;
+  }
+  .sd-chapter[data-chapter='0'] {
+    opacity: 1;
+    visibility: visible;
+  }
+  .sd-story__pair {
+    flex-direction: column;
+    gap: var(--spacing-24);
+  }
+  .sd-story__portrait {
+    flex: none;
+    width: 100%;
+  }
+  .sd-story__heading {
+    gap: var(--spacing-12);
+  }
+  .sd-story__titles {
+    gap: var(--spacing-8);
+  }
+  .sd-story__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-16);
+  }
+  .sd-story__more {
+    justify-content: flex-start;
+  }
+
+  /* 05 Paquetes */
+  .sd-packages__inner {
+    gap: var(--spacing-32);
+  }
+  .sd-packages__grid[data-layout] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-24);
+  }
+  .sd-packages__photo {
+    display: none;
+  }
+
+  /* 06 + 07 */
+  .sd-checklists {
+    padding-bottom: var(--spacing-48);
+  }
+  .sd-checklists__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-48);
+  }
+
+  /* 08 FAQ: la línea superior ocupa todo el ancho y el enlace va al final */
+  .sd-faq {
+    padding-top: var(--spacing-48);
+    border-top: var(--border-width-default) solid var(--color-border-default);
+  }
+  .sd-faq__inner {
+    align-items: stretch;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .sd-faq__intro {
+    display: contents;
+  }
+  .sd-faq__titles {
+    gap: var(--spacing-8);
+  }
+  .sd-faq__more {
+    order: 1;
+    align-self: flex-start;
+  }
+
+  /* 09 Booking CTA */
+  .sd-cta__inner {
+    align-items: stretch;
+    gap: var(--spacing-24);
+  }
+  .sd-cta__text {
+    gap: var(--spacing-12);
+  }
+  .sd-cta__titles {
+    gap: var(--spacing-8);
+  }
+  .sd-cta__actions {
+    gap: var(--spacing-12);
+  }
+
+  /* Barra de reserva fija: aparece cuando el hero sale de la vista */
+  .sd-sticky-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-16);
+    padding: var(--spacing-12) var(--layout-padding) calc(var(--spacing-16) + env(safe-area-inset-bottom, 0px));
+    background: var(--color-background-primary);
+    border-top: var(--border-width-default) solid var(--color-border-subtle);
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform var(--duration-base) var(--ease), visibility 0s linear var(--duration-base);
+  }
+  .sd-sticky-bar.is-visible {
+    transform: none;
+    visibility: visible;
+    transition: transform var(--duration-base) var(--ease);
+  }
+  .sd-sticky-bar__summary {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    white-space: nowrap;
+  }
+  .sd-sticky-bar .t-price {
+    color: var(--color-text-primary);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-chapter,
+  .sd-chapter.is-active,
+  .sd-sticky-bar,
+  .sd-sticky-bar.is-visible {
+    transition: none;
+  }
+}

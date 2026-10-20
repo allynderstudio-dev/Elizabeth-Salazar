@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reservar · Ely Salazar</title>
+  <meta name="description" content="Elige tu sesión, tu paquete, la fecha y la hora. Sesiones de lunes a sábado, en hora de Venezuela (UTC−4).">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_VE">
+  <meta property="og:site_name" content="Ely Salazar Photography">
+  <meta property="og:title" content="Reservar · Ely Salazar">
+  <meta property="og:description" content="Elige tu sesión, tu paquete, la fecha y la hora. Sesiones de lunes a sábado, en hora de Venezuela (UTC−4).">
+  <meta property="og:image" content="assets/images/servicios/hero.jpg">
+  <meta name="theme-color" content="#f5f3ef">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="assets/fonts/Bitter-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/Montserrat-500-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/reservar.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <!-- partial:header -->
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand-logo" href="index.html" aria-label="Ely Salazar — Inicio">
+        <img src="assets/logos/logo.svg" alt="" width="112" height="32">
+      </a>
+      <nav class="site-nav" aria-label="Principal">
+        <ul class="site-nav__list">
+          <li><a class="nav-link" href="servicios.html">Sesiones</a></li>
+          <li><a class="nav-link" href="temporada.html">Temporada</a></li>
+          <li><a class="nav-link" href="galeria.html">Galería</a></li>
+          <li><a class="nav-link" href="sobre-ely.html">Sobre Ely</a></li>
+        </ul>
+        <a class="btn btn--primary" href="reservar.html">Reservar</a>
+      </nav>
+      <button class="icon-btn menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu-movil">
+        <img src="assets/icons/menu.svg" alt="" width="24" height="24">
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="menu-movil" aria-label="Menú" inert>
+    <ul class="mobile-menu__list">
+      <li><a class="nav-link" href="index.html">Inicio</a></li>
+      <li><a class="nav-link" href="servicios.html">Sesiones</a></li>
+      <li><a class="nav-link" href="temporada.html">Temporada</a></li>
+      <li><a class="nav-link" href="galeria.html">Galería</a></li>
+      <li><a class="nav-link" href="sobre-ely.html">Sobre Ely</a></li>
+    </ul>
+    <a class="btn btn--primary" href="reservar.html">Reservar</a>
+  </div>
+  <!-- /partial:header -->
+
+  <main id="contenido">
+    <form class="booking" id="reserva" method="post" action="#" novalidate data-step="1">
+      <div class="booking__section">
+        <div class="container booking__body">
+          <div class="booking__main">
+
+            <!-- Encabezado del paso: indicador + título -->
+            <div class="booking__header">
+              <div class="step-indicator" data-step-indicator>
+                <p class="step-indicator__count">Paso <span data-step-number>1</span> de 5</p>
+                <p class="step-indicator__name" data-step-name>Sesión</p>
+                <ol class="step-indicator__bar" aria-label="Pasos de la reserva">
+                  <li class="is-current" aria-current="step"><span class="visually-hidden">Sesión</span></li>
+                  <li><span class="visually-hidden">Paquete</span></li>
+                  <li><span class="visually-hidden">Fecha y hora</span></li>
+                  <li><span class="visually-hidden">Detalles y contacto</span></li>
+                  <li><span class="visually-hidden">Revisión</span></li>
+                </ol>
+              </div>
+              <div class="booking__heading">
+                <div class="booking__heading-row">
+                  <button class="icon-btn booking__back-icon" type="button" data-back aria-label="Atrás" hidden>
+                    <img src="assets/icons/chevron-left.svg" alt="" width="24" height="24">
+                  </button>
+                  <h1 class="booking__title" tabindex="-1" data-title>Elige tu sesión</h1>
+                </div>
+                <p class="booking__subtitle" data-subtitle>Selecciona el tipo de sesión que quieres reservar.</p>
+              </div>
+            </div>
+
+            <!-- Paso 1 · Sesión -->
+            <div class="booking__panel" data-panel="1">
+              <div class="booking-filters">
+                <p class="booking-filters__label" id="filtro-label">Filtrar por categoría</p>
+                <div class="booking-filters__chips" role="group" aria-labelledby="filtro-label" data-filter-chips></div>
+                <p class="booking-filters__status" aria-live="polite" data-selection-status>Sesión elegida: ninguna</p>
+              </div>
+              <fieldset class="option-fieldset" aria-describedby="error-sesion">
+                <legend class="visually-hidden">Tipo de sesión</legend>
+                <div class="service-options" data-service-options></div>
+              </fieldset>
+              <p class="field-message field-message--error step-error" id="error-sesion" aria-live="polite" hidden></p>
+            </div>
+
+            <!-- Paso 2 · Paquete -->
+            <div class="booking__panel" data-panel="2" hidden>
+              <fieldset class="option-fieldset" aria-describedby="error-paquete">
+                <legend class="visually-hidden">Paquete</legend>
+                <div class="package-options" data-package-options></div>
+              </fieldset>
+              <p class="field-message field-message--error step-error" id="error-paquete" aria-live="polite" hidden></p>
+              <div class="notice notice--info" data-package-notice hidden>
+                <span class="notice__bar" aria-hidden="true"></span>
+                <div class="notice__content">
+                  <span class="notice__icon"><img src="assets/icons/info-notice.svg" alt="" width="20" height="20"></span>
+                  <div class="notice__text">
+                    <p class="notice__title" data-notice-title></p>
+                    <p class="notice__body" data-notice-body></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Paso 3 · Fecha y hora -->
+            <div class="booking__panel" data-panel="3" hidden>
+              <div class="date-time">
+                <div class="calendar" data-calendar>
+                  <div class="calendar__header">
+                    <h2 class="calendar__month" id="calendario-mes" aria-live="polite" data-cal-month>Noviembre 2026</h2>
+                    <button class="icon-btn" type="button" aria-label="Mes anterior" data-cal-prev>
+                      <img src="assets/icons/chevron-left.svg" alt="" width="24" height="24">
+                    </button>
+                    <button class="icon-btn" type="button" aria-label="Mes siguiente" data-cal-next>
+                      <img src="assets/icons/chevron-right.svg" alt="" width="24" height="24">
+                    </button>
+                  </div>
+                  <table class="calendar__grid" role="grid" aria-labelledby="calendario-mes" aria-describedby="error-fecha">
+                    <thead>
+                      <tr>
+                        <th scope="col" abbr="lunes">Lu</th>
+                        <th scope="col" abbr="martes">Ma</th>
+                        <th scope="col" abbr="miércoles">Mi</th>
+                        <th scope="col" abbr="jueves">Ju</th>
+                        <th scope="col" abbr="viernes">Vi</th>
+                        <th scope="col" abbr="sábado">Sá</th>
+                        <th scope="col" abbr="domingo">Do</th>
+                      </tr>
+                    </thead>
+                    <tbody data-cal-days></tbody>
+                  </table>
+                  <p class="calendar__note">Los días tachados no están disponibles.</p>
+                </div>
+                <fieldset class="time-selection" aria-describedby="hora-nota error-hora">
+                  <legend class="time-selection__legend" data-time-legend>Elige tu horario preferido</legend>
+                  <p class="time-selection__date" data-time-date>Primero elige una fecha</p>
+                  <div class="time-slots" data-time-slots></div>
+                  <p class="time-selection__note" id="hora-nota" data-time-note>Cada sesión dura alrededor de 2 horas. Ely confirmará la disponibilidad por WhatsApp.</p>
+                  <p class="field-message field-message--error step-error" id="error-fecha" aria-live="polite" hidden></p>
+                  <p class="field-message field-message--error step-error" id="error-hora" aria-live="polite" hidden></p>
+                </fieldset>
+              </div>
+            </div>
+
+            <!-- Paso 4 · Detalles y contacto -->
+            <div class="booking__panel" data-panel="4" hidden>
+              <div class="details-form">
+                <section class="form-group" aria-labelledby="sobre-sesion">
+                  <h2 class="form-group__title" id="sobre-sesion">Sobre tu sesión</h2>
+                  <div class="form-group__fields" data-detail-fields></div>
+                </section>
+                <section class="form-group form-group--contact" aria-labelledby="datos-contacto">
+                  <div class="form-group__header">
+                    <h2 class="form-group__title" id="datos-contacto">Tus datos de contacto</h2>
+                    <p class="form-group__note">Ambos campos son obligatorios.</p>
+                  </div>
+                  <div class="form-row">
+                    <div class="field">
+                      <label class="field__label" for="nombre">Nombre completo <span class="field__required" aria-hidden="true">*</span></label>
+                      <input class="input" id="nombre" name="nombre" type="text" autocomplete="name" required maxlength="80" aria-describedby="nombre-msg">
+                      <p class="field-message" id="nombre-msg" aria-live="polite"></p>
+                    </div>
+                    <div class="field">
+                      <label class="field__label" for="whatsapp">Número de WhatsApp <span class="field__required" aria-hidden="true">*</span></label>
+                      <div class="input input--phone">
+                        <span class="input__prefix">
+                          <label class="visually-hidden" for="codigo-pais">Código de país</label>
+                          <select class="input__country" id="codigo-pais" name="codigo-pais" autocomplete="tel-country-code">
+                            <option value="+58">+58</option>
+                            <option value="+57">+57</option>
+                          </select>
+                          <img class="input__chevron" src="assets/icons/chevron-down.svg" alt="" width="16" height="16">
+                          <span class="input__divider" aria-hidden="true"></span>
+                        </span>
+                        <input id="whatsapp" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel-national" required maxlength="16" placeholder="412 000 0000" aria-describedby="whatsapp-msg">
+                      </div>
+                      <p class="field-message" id="whatsapp-msg" aria-live="polite" data-helper="Te escribiremos por este número para coordinar tu sesión.">Te escribiremos por este número para coordinar tu sesión.</p>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <!-- Paso 5 · Revisión -->
+            <div class="booking__panel" data-panel="5" hidden>
+              <div class="summary-card summary-card--review" data-summary="review"></div>
+
+              <section class="policies" aria-labelledby="politicas-titulo">
+                <h2 class="policies__title" id="politicas-titulo">Políticas de reserva</h2>
+                <div class="policy">
+                  <h3 class="policy__title"><img src="assets/icons/tag.svg" alt="" width="24" height="24">Reservaciones</h3>
+                  <p class="policy__text">Al enviar tu solicitud, tu horario queda reservado provisionalmente durante 24 horas. Para confirmar tu sesión, debes realizar un abono del 50% del valor total. Si no recibimos el abono en ese plazo, la solicitud vence y el horario vuelve a estar disponible.</p>
+                </div>
+                <div class="policy">
+                  <h3 class="policy__title"><img src="assets/icons/clock.svg" alt="" width="24" height="24">Puntualidad</h3>
+                  <p class="policy__text">Tienes 15 minutos de tolerancia después de la hora programada. Si llegas después de ese tiempo, será necesario reprogramar tu sesión según disponibilidad. El abono realizado no es reembolsable.</p>
+                </div>
+                <div class="policy">
+                  <h3 class="policy__title"><img src="assets/icons/calendar.svg" alt="" width="24" height="24">Reprogramaciones</h3>
+                  <p class="policy__text">Si necesitas cambiar la fecha de tu sesión, podrás solicitar una nueva reserva según disponibilidad. El abono anterior no es transferible ni reembolsable.</p>
+                </div>
+                <div class="checkbox-field">
+                  <label class="checkbox">
+                    <input type="checkbox" id="acepto" name="acepto" required aria-describedby="acepto-msg">
+                    <span class="checkbox__box" aria-hidden="true"><img src="assets/icons/check-inverse.svg" alt="" width="16" height="16"></span>
+                    <span class="checkbox__label">Acepto las políticas de reserva</span>
+                  </label>
+                  <p class="field-message field-message--error" id="acepto-msg" aria-live="polite" hidden></p>
+                </div>
+              </section>
+
+              <section class="checklist" aria-labelledby="despues-titulo">
+                <h2 class="checklist__title" id="despues-titulo">Qué pasa después de enviarla</h2>
+                <ul class="feature-list">
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="after1">Envías tu solicitud por WhatsApp y Ely confirma si tu horario está disponible.</span></li>
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="after2">Realizas el abono de US$35 (50%) y lo coordinas con Ely por WhatsApp.</span></li>
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span>Ely verifica tu abono y confirma tu sesión.</span></li>
+                </ul>
+              </section>
+              <p class="field-message field-message--error step-error" id="error-envio" role="alert" hidden></p>
+            </div>
+
+            <!-- Pantalla final (no es un paso) -->
+            <div class="booking__panel" data-panel="success" hidden>
+              <div class="status-card">
+                <p class="status-badge"><img src="assets/icons/tag-warning.svg" alt="" width="16" height="16"><span data-copy="badge">Pendiente de envío</span></p>
+                <h2 class="status-card__title" data-copy="statusTitle">Envía tu solicitud por WhatsApp</h2>
+                <p class="status-card__text" data-copy="statusText">Aún no está registrada ni es una reserva confirmada; se completa al enviar el mensaje.</p>
+                <p class="status-card__meta" data-status-meta>Abono requerido: US$35 · plazo de 24 horas desde tu solicitud.</p>
+                <a class="btn btn--primary" href="https://wa.me/584266463929" target="_blank" rel="noopener" data-whatsapp-link aria-label="Continuar por WhatsApp, se abre en otra app">
+                  <img src="assets/icons/whatsapp-inverse.svg" alt="" width="20" height="20">
+                  <span>Continuar por WhatsApp</span>
+                </a>
+              </div>
+
+              <div class="wa-preview" data-wa-preview="success"></div>
+
+              <section class="checklist" aria-labelledby="proximos-titulo">
+                <h2 class="checklist__title" id="proximos-titulo">Próximos pasos</h2>
+                <ul class="feature-list">
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="next1">Envía el mensaje por WhatsApp y realiza el abono de US$35 (50%) en las próximas 24 horas.</span></li>
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span>Coordina el pago con Ely por WhatsApp.</span></li>
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span>Ely verificará tu abono y confirmará tu sesión.</span></li>
+                </ul>
+              </section>
+
+              <div class="summary-card summary-card--success-mobile" data-summary="success-mobile"></div>
+
+              <div class="success-actions">
+                <a class="btn btn--text success-actions__home" href="index.html" data-home>
+                  <img src="assets/icons/chevron-left.svg" alt="" width="20" height="20">
+                  <span>Volver al inicio</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Barra de acciones (sticky) -->
+            <div class="action-bar" data-action-bar>
+              <div class="action-bar__actions" data-actions>
+                <button class="btn btn--secondary action-bar__back" type="button" data-back hidden>
+                  <img src="assets/icons/chevron-left.svg" alt="" width="20" height="20">
+                  <span>Atrás</span>
+                </button>
+                <button class="btn btn--primary action-bar__next" type="button" data-next>
+                  <span>Continuar</span>
+                  <img src="assets/icons/arrow-right-inverse.svg" alt="" width="20" height="20">
+                </button>
+                <button class="btn btn--primary action-bar__submit" type="button" data-submit hidden>
+                  <span data-copy="submit">Preparar solicitud por WhatsApp</span>
+                </button>
+              </div>
+              <div class="action-bar__summary" data-bar-summary>
+                <button class="summary-toggle" type="button" aria-expanded="false" aria-controls="resumen-movil" data-summary-toggle>
+                  <span class="summary-toggle__label">Resumen de tu reserva</span>
+                  <span class="summary-toggle__total">
+                    <span data-bar-total>—</span>
+                    <img class="summary-toggle__chevron" src="assets/icons/chevron-down.svg" alt="" width="20" height="20">
+                  </span>
+                </button>
+                <div class="action-bar__panel" id="resumen-movil" hidden>
+                  <div class="summary-card summary-card--bar" data-summary="bar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna lateral -->
+          <aside class="booking__side" aria-label="Resumen">
+            <div class="summary-card" data-summary="aside"></div>
+            <div class="wa-preview" data-wa-preview="review"></div>
+            <button class="btn btn--primary booking__side-submit" type="button" data-submit-side>
+              <span data-copy="submit">Preparar solicitud por WhatsApp</span>
+            </button>
+          </aside>
+        </div>
+      </div>
+    </form>
+    <noscript>
+      <p class="booking-noscript">Para reservar necesitas activar JavaScript. También puedes escribirnos por WhatsApp al +58 426 646 3929.</p>
+    </noscript>
+  </main>
+
+  <!-- partial:footer -->
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <div class="site-footer__columns">
+        <div class="site-footer__brand">
+          <a class="brand-logo" href="index.html" aria-label="Ely Salazar — Inicio">
+            <img src="assets/logos/logo-inverse.svg" alt="" width="112" height="32" loading="lazy">
+          </a>
+          <p class="site-footer__tagline">Fotografía en Táriba, Táchira, Venezuela.</p>
+          <a class="btn btn--secondary btn--on-dark" href="reservar.html">Reservar sesión</a>
+        </div>
+        <nav class="footer-col" aria-labelledby="footer-nav-title">
+          <p class="t-eyebrow footer-col__title" id="footer-nav-title">Navegación</p>
+          <ul>
+            <li><a class="nav-link" href="index.html">Inicio</a></li>
+            <li><a class="nav-link" href="servicios.html">Sesiones</a></li>
+            <li><a class="nav-link" href="temporada.html">Temporada</a></li>
+            <li><a class="nav-link" href="galeria.html">Galería</a></li>
+            <li><a class="nav-link" href="sobre-ely.html">Sobre Ely</a></li>
+            <li><a class="nav-link" href="preguntas-y-politicas.html">Políticas de reserva</a></li>
+          </ul>
+        </nav>
+        <nav class="footer-col" aria-labelledby="footer-sesiones-title">
+          <p class="t-eyebrow footer-col__title" id="footer-sesiones-title">Sesiones</p>
+          <ul>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=embarazo">Embarazo</a></li>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=newborn">Newborn</a></li>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=cumpleanos-infantiles">Cumpleaños</a></li>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=familiar">Familiar</a></li>
+            <li><a class="nav-link" href="servicio-detalle.html?sesion=quince-anos">Quince años</a></li>
+            <li><a class="nav-link" href="servicios.html">Ver todas las sesiones</a></li>
+          </ul>
+        </nav>
+        <div class="footer-col">
+          <p class="t-eyebrow footer-col__title">Contacto</p>
+          <ul>
+            <li><a class="contact-link" data-whatsapp href="https://wa.me/584266463929" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp, se abre en otra app"><img src="assets/icons/whatsapp-inverse.svg" alt="" width="20" height="20" loading="lazy"><span>+58 426 646 3929</span></a></li>
+            <li><a class="contact-link" href="https://www.instagram.com/elysalazar_/" target="_blank" rel="noopener" aria-label="Instagram @elysalazar_, se abre en otra pestaña"><img src="assets/icons/instagram-inverse.svg" alt="" width="20" height="20" loading="lazy"><span>@elysalazar_</span></a></li>
+            <li><p class="contact-link"><img src="assets/icons/map-pin-inverse.svg" alt="" width="20" height="20" loading="lazy">Táriba, Táchira, Venezuela</p></li>
+            <li><p class="contact-link"><img src="assets/icons/calendar-inverse.svg" alt="" width="20" height="20" loading="lazy">Sesiones de lunes a sábado</p></li>
+          </ul>
+        </div>
+      </div>
+      <hr class="site-footer__divider">
+      <div class="site-footer__legal">
+        <p>© <span data-year>2026</span> Ely Salazar. Todos los derechos reservados.</p>
+        <p>Diseñado y desarrollado por&nbsp;<a href="https://allynder.com" target="_blank" rel="noopener">Allynder Studio</a></p>
+      </div>
+    </div>
+  </footer>
+  <!-- /partial:footer -->
+
+  <script src="js/navigation.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/booking-config.js" defer></script>
+  <script src="js/booking-data.js" defer></script>
+  <script src="js/booking.js" defer></script>
+</body>
+</html>
