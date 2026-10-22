@@ -194,17 +194,20 @@ No se usan. Sin base de datos no hay una copia local que sincronizar: cada consu
 - Si Ely confirma justo entre la relectura y el rechazo del cron, la carrera es de milisegundos y no se puede descartar del todo: la API de rechazo no ofrece una condición.
 - Cal.com no documenta la codificación de la firma de los webhooks (hex o base64) ni un código de error específico para "horario ocupado". El conflicto se reconoce por estado 409, o por 400 con mensaje de horario no disponible.
 
-### Comprobaciones reales pendientes en Cal.com
+### Comprobaciones reales en Cal.com
 
-Las pruebas automatizadas usan un Cal.com simulado. Falta comprobar con la cuenta real:
-- [ ] `npm run cal:check` con el evento de prueba: horarios 08/10/14/16, lunes a sábado, duración 120.
-- [ ] Crear **una** solicitud de prueba sin correo: que quede `pending`, que bloquee el horario y que se vea en Google Calendar.
-- [ ] Que el `metadata` vuelva en `GET /v2/bookings` (en él se basa la protección contra duplicados).
-- [ ] Que `attendee.phoneNumber` llene el teléfono obligatorio del evento.
+Las pruebas automatizadas usan un Cal.com simulado. Con la cuenta real (evento de prueba 7600420, vista previa de Vercel, 22/10/2026):
+- [x] `/v2/slots`: lunes a sábado; 08, 10, 14 y 16 h; 120 min.
+- [x] Solicitud desde el sitio sin correo: queda `pending`, bloquea el horario y se ve en Google Calendar. Cal.com genera un correo interno `…@sms.cal.com`.
+- [x] `attendee.phoneNumber` llena el teléfono obligatorio del evento.
+- [x] El `metadata` se guarda y vuelve al leer la reserva.
+- [x] Confirmar en Cal.com: la reserva pasa a aceptada y queda en Google Calendar.
+- [ ] Rechazar y cancelar desde Cal.com y comprobar que el horario se libera.
 - [ ] Respuesta real de Cal.com ante un horario ocupado (código y mensaje).
 - [ ] Solapamiento entre dos eventos distintos del mismo calendario.
-- [ ] Confirmar y rechazar desde Cal.com y ver el efecto en el sitio y en Google Calendar.
 - [ ] Cron en `dry-run` en producción.
+
+Ojo: `GET /v2/bookings/{uid}` responde sin autenticación, así que quien conozca la referencia puede leer nombre y teléfono de esa reserva. La referencia solo se muestra al cliente y viaja a Ely por WhatsApp.
 
 ## Pendientes y decisiones a revisar
 
