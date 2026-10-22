@@ -8,6 +8,9 @@
 // Ejemplo (no activo):
 //   'embarazo/estudio': { eventTypeId: 1234567, durationMinutes: 120 },
 const CAL_EVENTS = {
+  // Evento de PRUEBA "Ely — Sesión de prueba." (cal.com/dylan-nieto-y0krpq/ely-sesion-de-prueba).
+  // Reemplazar por el evento definitivo antes de publicar en producción.
+  'embarazo/estudio': { eventTypeId: 7600420, durationMinutes: 120 },
 };
 
 module.exports = CAL_EVENTS;
