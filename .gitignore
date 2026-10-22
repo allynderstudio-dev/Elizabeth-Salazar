@@ -7,3 +7,7 @@ Thumbs.db
 
 # Vercel
 .vercel/
+
+# Secretos locales (nunca en el repositorio)
+.env
+.env.*

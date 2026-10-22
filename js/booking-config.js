@@ -1,41 +1,45 @@
-// Configuración del flujo de reserva.
-// Fase actual: NO hay backend. Con los endpoints en null, el flujo no muestra
-// disponibilidad real ni confirma solicitudes: todo se completa por WhatsApp.
-// Fase futura (notas técnicas de Figma): Sitio web → Cal.com → Google Calendar.
-window.BOOKING_CONFIG = {
-  // TODO(Cal.com): URL del servicio que devuelve la disponibilidad.
-  // Contrato esperado (ver adaptadores en js/booking.js):
-  //   GET {availabilityEndpoint}?servicio=<slug>&paquete=<slug>&mes=AAAA-MM
-  //   → { dias: { 'AAAA-MM-DD': ['08:00', '10:00', ...] } }  (solo horarios libres)
-  availabilityEndpoint: null,
+// Configuración del flujo de reserva (la comparten el navegador y el backend en api/_lib).
+// Flujo: Sitio web → backend propio (/api, Vercel Functions) → Cal.com → Google Calendar.
+// Solo los paquetes con un evento de Cal.com asignado en api/_lib/cal-events.js reservan
+// en línea; el resto sigue en modo WhatsApp (horario preferido, sin disponibilidad real).
+(() => {
+  const BOOKING_CONFIG = {
+    // Backend propio. Contratos en api/availability.js y api/bookings.js.
+    //   GET  {availabilityEndpoint}?servicio=<slug>&paquete=<slug>&mes=AAAA-MM
+    //   → { reservable: true, dias: { 'AAAA-MM-DD': ['08:00', ...] } }  (solo horarios libres)
+    //   → { reservable: false }  (paquete sin evento de Cal.com: se coordina por WhatsApp)
+    //   POST {bookingEndpoint}  body JSON (ver buildBookingPayload en js/booking.js)
+    //   → 201 { referencia, uid, estado: 'pendiente' }
+    // En null, todo el flujo vuelve al modo WhatsApp.
+    availabilityEndpoint: '/api/availability',
+    bookingEndpoint: '/api/bookings',
 
-  // TODO(Cal.com): URL que registra la solicitud (reserva provisional de 24 h).
-  //   POST {bookingEndpoint}  body JSON (ver buildBookingPayload en js/booking.js)
-  //   → { id: '...', estado: 'pendiente-de-abono' }
-  bookingEndpoint: null,
+    whatsappNumber: '584266463929',
+    timezone: 'America/Caracas',
+    timezoneLabel: 'hora de Venezuela',
 
-  whatsappNumber: '584266463929',
-  timezone: 'America/Caracas',
-  timezoneLabel: 'hora de Venezuela',
+    // Lunes a sábado (0 = domingo … 6 = sábado)
+    workingDays: [1, 2, 3, 4, 5, 6],
 
-  // Lunes a sábado (0 = domingo … 6 = sábado)
-  workingDays: [1, 2, 3, 4, 5, 6],
+    // Horas de inicio habituales (24 h) y su etiqueta en español
+    startTimes: [
+      { value: '08:00', label: '8:00 a. m.' },
+      { value: '10:00', label: '10:00 a. m.' },
+      { value: '14:00', label: '2:00 p. m.' },
+      { value: '16:00', label: '4:00 p. m.' },
+    ],
 
-  // Horas de inicio permitidas (24 h) y su etiqueta en español
-  startTimes: [
-    { value: '08:00', label: '8:00 a. m.' },
-    { value: '10:00', label: '10:00 a. m.' },
-    { value: '14:00', label: '2:00 p. m.' },
-    { value: '16:00', label: '4:00 p. m.' },
-  ],
+    // Días mínimos de anticipación (1 = desde mañana) y meses navegables
+    minDaysAhead: 1,
+    maxMonthsAhead: 6,
 
-  // Días mínimos de anticipación (1 = desde mañana) y meses navegables
-  minDaysAhead: 1,
-  maxMonthsAhead: 6,
+    depositRate: 0.5,
+    defaultCountryCode: '+58',
+    countryCodes: ['+58', '+57'],
 
-  depositRate: 0.5,
-  defaultCountryCode: '+58',
-  countryCodes: ['+58', '+57'],
+    storageKey: 'ely-reserva-borrador',
+  };
 
-  storageKey: 'ely-reserva-borrador',
-};
+  if (typeof window !== 'undefined') window.BOOKING_CONFIG = BOOKING_CONFIG;
+  if (typeof module !== 'undefined' && module.exports) module.exports = BOOKING_CONFIG;
+})();

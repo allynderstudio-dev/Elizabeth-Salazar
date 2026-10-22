@@ -1,8 +1,13 @@
 // Reservar: flujo de 5 pasos + pantalla final.
 // Navegación con historial (?paso=N), validación, formularios condicionales por servicio,
 // abono del 50 %, resumen, barra de acciones sticky y borrador en sessionStorage.
-// Honestidad: sin endpoints configurados (BOOKING_CONFIG) no se muestra disponibilidad
-// real ni se dice que la solicitud quedó registrada; se completa por WhatsApp.
+// Dos modos por paquete:
+//  - "live": el paquete tiene evento de Cal.com (lo decide el backend). Solo se ofrecen
+//    horarios que Cal.com devuelve como libres y la solicitud se registra como pendiente
+//    en Cal.com ANTES de mostrar éxito o el enlace a WhatsApp.
+//  - "manual": sin evento o sin endpoints. Fecha y hora son preferencias y todo se
+//    completa por WhatsApp; no se dice que la solicitud quedó registrada.
+// Si Cal.com falla para un paquete "live", no se inventa disponibilidad: se pide reintentar.
 (() => {
   const CFG = window.BOOKING_CONFIG;
   const DATA = window.BOOKING_DATA;
@@ -10,7 +15,7 @@
   if (!CFG || !DATA || !form) return;
 
   const LIVE_AVAILABILITY = Boolean(CFG.availabilityEndpoint);
-  const LIVE_BOOKING = Boolean(CFG.bookingEndpoint);
+  const LIVE_BOOKING = LIVE_AVAILABILITY && Boolean(CFG.bookingEndpoint);
 
   const $ = (sel, root = form) => root.querySelector(sel);
   const $$ = (sel, root = form) => [...root.querySelectorAll(sel)];
@@ -28,20 +33,22 @@
     { name: 'Revisión', title: 'Revisa tu solicitud', subtitle: () => 'Confirma que todo esté bien antes de enviarla. Tu sesión se confirma después del abono del 50%.' },
   ];
 
-  // Copias que dependen de si hay backend. "live" = texto exacto de Figma.
+  // Copias según el modo. "live" parte de Figma, sin prometer un bloqueo de 24 horas:
+  // el horario queda apartado mientras la solicitud esté pendiente en Cal.com, y el
+  // vencimiento automático aún no está activo (ver README).
   // "manual" = ajuste mínimo para no afirmar que la solicitud quedó registrada.
   const COPY = {
     live: {
       submit: 'Enviar solicitud de reserva',
-      notice: 'Al enviar tu solicitud, tu horario queda reservado provisionalmente durante 24 horas. Para confirmar tu sesión, debes realizar el abono del 50% del valor total.',
-      after1: 'Recibimos tu solicitud y apartamos tu horario durante 24 horas.',
+      notice: 'Al enviar tu solicitud, tu horario queda apartado mientras Ely la revisa. Para confirmar tu sesión, debes realizar el abono del 50% del valor total.',
+      after1: 'Registramos tu solicitud y apartamos tu horario mientras Ely la revisa.',
       after2: (d) => `Realizas el abono de ${d} (50%) y lo coordinas con Ely por WhatsApp.`,
       successTitle: 'Recibimos tu solicitud',
-      successSubtitle: 'Tu horario estará reservado provisionalmente durante 24 horas. Para confirmar tu sesión, debes realizar el abono del 50%.',
+      successSubtitle: 'Tu horario quedó apartado mientras Ely revisa tu solicitud. Para confirmar tu sesión, debes realizar el abono del 50%.',
       badge: 'Pendiente de abono',
       statusTitle: 'Falta tu abono del 50%',
       statusText: 'Tu solicitud quedó registrada, pero aún no es una reserva confirmada.',
-      next1: (d) => `Realiza el abono de ${d} (50%) en las próximas 24 horas.`,
+      next1: (d) => `Realiza el abono de ${d} (50%) dentro de las 24 horas siguientes, según las políticas de reserva.`,
       timeLegend: 'Horarios disponibles',
       timeNote: 'Cada sesión dura alrededor de 2 horas. Los horarios tachados ya no están disponibles.',
     },
@@ -60,8 +67,9 @@
       timeNote: 'Cada sesión dura alrededor de 2 horas. Ely confirmará la disponibilidad por WhatsApp.',
     },
   };
-  const T = LIVE_BOOKING ? COPY.live : COPY.manual;
-  const TA = LIVE_AVAILABILITY ? COPY.live : COPY.manual;
+  // El modo se decide con el horario elegido (ver liveSlotSelected) o la reserva ya creada
+  const isLive = () => (state.step === 'success' && Boolean(state.booking)) || liveSlotSelected();
+  const T = () => (isLive() ? COPY.live : COPY.manual);
 
   const ERR = {
     required: 'Este campo es obligatorio',
@@ -74,6 +82,10 @@
     dateFuture: 'Elige una fecha a partir de hoy.',
     datePast: 'La fecha no puede ser posterior a hoy.',
     submit: 'No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos por WhatsApp.',
+    uncertain: 'No pudimos confirmar si tu solicitud quedó registrada. Vuelve a intentarlo: no se duplicará.',
+    slotTaken: 'Ese horario acaba de ocuparse. Elige otro, por favor.',
+    priceChanged: 'El precio de este paquete cambió. Revisa el resumen antes de enviar.',
+    availability: 'No pudimos consultar la disponibilidad. Inténtalo de nuevo en unos minutos o escríbenos por WhatsApp.',
   };
 
   /* ---------- Fechas (hora de Venezuela) ---------- */
@@ -97,12 +109,20 @@
   const addMonths = (key, n) => { const [y, m] = key.split('-').map(Number); const dt = new Date(Date.UTC(y, m - 1 + n, 1)); return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}`; };
   const MIN_MONTH = monthKey(MIN_DATE);
   const MAX_MONTH = addMonths(MIN_MONTH, CFG.maxMonthsAhead);
-  const timeLabel = (v) => (CFG.startTimes.find((t) => t.value === v) || {}).label || v;
+  // Etiqueta "8:00 a. m."; también para horas que Cal.com devuelva fuera de las habituales
+  const timeLabel = (v) => {
+    const known = CFG.startTimes.find((t) => t.value === v);
+    if (known) return known.label;
+    const [h, m] = String(v).split(':').map(Number);
+    return `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'a. m.' : 'p. m.'}`;
+  };
 
   /* ---------- Estado + borrador ---------- */
   const blank = () => ({
     step: 1, category: 'todas', service: null, pkg: null, date: null, time: null,
     viewMonth: null, details: {}, name: '', code: CFG.defaultCountryCode, phone: '', consent: false,
+    // Referencia propia de la solicitud: se reutiliza en reintentos para no duplicar reservas
+    requestRef: null, requestKey: null, booking: null,
   });
   let state = blank();
   const touched = new Set();
@@ -120,32 +140,56 @@
     return service.packages.find((p) => p.slug === n || normalize(p.name) === n) || null;
   };
 
-  /* ---------- Adaptadores de disponibilidad y reserva (Cal.com, fase futura) ---------- */
+  /* ---------- Adaptadores del backend propio (/api → Cal.com) ---------- */
+  // Caché por servicio|paquete|mes: { 'AAAA-MM-DD': ['08:00', ...] } (solo libres)
+  // o null cuando el paquete se coordina por WhatsApp. Los fallos no se guardan.
   const availabilityCache = new Map();
+  const cacheKey = (month) => `${state.service}|${state.pkg}|${month}`;
 
-  // Devuelve { 'AAAA-MM-DD': ['08:00', ...] } con SOLO horarios libres, o null si no hay API.
-  // TODO(Cal.com): mapear la respuesta real de Cal.com (/slots) a este formato.
   async function fetchAvailability(month) {
-    if (!LIVE_AVAILABILITY) return null;
-    const key = `${state.service}|${state.pkg}|${month}`;
+    if (!LIVE_AVAILABILITY || !state.service || !state.pkg) return null;
+    const key = cacheKey(month);
     if (availabilityCache.has(key)) return availabilityCache.get(key);
     const url = new URL(CFG.availabilityEndpoint, location.href);
-    url.searchParams.set('servicio', state.service || '');
-    url.searchParams.set('paquete', state.pkg || '');
+    url.searchParams.set('servicio', state.service);
+    url.searchParams.set('paquete', state.pkg);
     url.searchParams.set('mes', month);
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
     if (!res.ok) throw new Error(`Disponibilidad: ${res.status}`);
     const json = await res.json();
-    const days = (json && json.dias) || {};
+    if (!json || typeof json.reservable !== 'boolean') throw new Error('Disponibilidad: respuesta inesperada');
+    const days = json.reservable ? json.dias || {} : null;
+    if (days && (typeof days !== 'object' || Object.values(days).some((v) => !Array.isArray(v)))) throw new Error('Disponibilidad: formato inesperado');
     availabilityCache.set(key, days);
     return days;
   }
 
-  // Cuerpo que se enviaría al endpoint de reservas. Sin correo electrónico.
+  // ¿El horario elegido salió de la disponibilidad real de Cal.com? Decide el modo.
+  function liveSlotSelected() {
+    if (!LIVE_BOOKING || !state.date || !state.time) return false;
+    const days = availabilityCache.get(cacheKey(monthKey(state.date)));
+    return Boolean(days && (days[state.date] || []).includes(state.time));
+  }
+
+  // Referencia estable mientras no cambien sesión, paquete, fecha ni hora
+  function requestRef() {
+    const key = `${state.service}|${state.pkg}|${state.date}|${state.time}|${state.code}${digits(state.phone)}`;
+    if (!state.requestRef || state.requestKey !== key) {
+      const rnd = window.crypto && crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+      state.requestRef = rnd;
+      state.requestKey = key;
+      store.save();
+    }
+    return state.requestRef;
+  }
+
+  // Cuerpo para el endpoint de reservas. Sin correo electrónico.
+  // El servidor recalcula y valida precio y abono; estos valores solo detectan diferencias.
   function buildBookingPayload() {
     const s = getService();
     const p = getPackage();
     return {
+      referencia: requestRef(),
       servicio: s.slug, paquete: p.slug, precio: p.price, abono: deposit(p.price),
       fecha: state.date, hora: state.time, zonaHoraria: CFG.timezone,
       nombre: state.name.trim(), whatsapp: `${state.code}${digits(state.phone)}`,
@@ -153,15 +197,25 @@
     };
   }
 
-  // TODO(Cal.com): crear la reserva provisional (24 h) y devolver su id/estado.
+  // → { ok: true, booking } | { ok: false, error: 'slot_taken' | 'uncertain' | ... }
+  // Sin respuesta (red caída, tiempo agotado) el resultado es incierto: se reintenta con la misma referencia.
   async function submitBooking(payload) {
-    const res = await fetch(CFG.bookingEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`Reserva: ${res.status}`);
-    return res.json();
+    let res;
+    try {
+      res = await fetch(CFG.bookingEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined,
+      });
+    } catch (err) {
+      return { ok: false, error: 'uncertain' };
+    }
+    let json = null;
+    try { json = await res.json(); } catch (e) { json = null; }
+    if (res.ok && json && typeof json.uid === 'string' && json.uid && json.referencia) return { ok: true, booking: json };
+    if (res.ok) return { ok: false, error: 'uncertain' }; // 2xx sin identificador: no se da por hecha
+    return { ok: false, error: (json && json.error) || (res.status >= 500 ? 'uncertain' : 'server'), body: json };
   }
 
   /* ---------- Paso 1 · Sesiones ---------- */
@@ -267,28 +321,38 @@
   /* ---------- Paso 3 · Calendario y horarios ---------- */
   const calDays = $('[data-cal-days]');
   const slotsEl = $('[data-time-slots]');
-  let monthAvailability = null; // null = desconocida (sin API)
-  let availabilityError = false;
+  let monthAvailability = null; // null = sin disponibilidad real (modo WhatsApp)
+  let availabilityError = false; // Cal.com/backend falló: no se ofrece ningún día
   let focusDate = null;
 
-  $('[data-time-legend]').textContent = TA.timeLegend;
+  // Disponibilidad conocida del mes de una fecha (null = modo WhatsApp o no consultada)
+  const knownDays = (dateIso) => (LIVE_AVAILABILITY ? availabilityCache.get(cacheKey(monthKey(dateIso))) || null : null);
 
   function dayStatus(dateIso) {
     const dow = parseIso(dateIso).getUTCDay();
     if (dateIso < MIN_DATE || !CFG.workingDays.includes(dow)) return 'unavailable';
     if (monthKey(dateIso) > MAX_MONTH) return 'unavailable';
-    if (monthAvailability && !(monthAvailability[dateIso] || []).length) return 'unavailable';
+    if (availabilityError && monthKey(dateIso) === state.viewMonth) return 'unavailable';
+    const days = monthKey(dateIso) === state.viewMonth ? monthAvailability : knownDays(dateIso);
+    if (days && !(days[dateIso] || []).length) return 'unavailable';
     return 'available';
   }
 
-  async function loadMonth() {
+  // ¿El horario está libre? Con disponibilidad real, solo si Cal.com lo devolvió.
+  function slotFree(dateIso, time) {
+    const days = knownDays(dateIso);
+    if (days) return (days[dateIso] || []).includes(time);
+    return CFG.startTimes.some((t) => t.value === time);
+  }
+
+  async function loadMonth(month = state.viewMonth) {
     availabilityError = false;
-    if (!LIVE_AVAILABILITY) { monthAvailability = null; return; }
+    if (!LIVE_AVAILABILITY || !month) { monthAvailability = null; return; }
     $('[data-calendar]').setAttribute('aria-busy', 'true');
     try {
-      monthAvailability = await fetchAvailability(state.viewMonth);
+      monthAvailability = await fetchAvailability(month);
     } catch (err) {
-      // Si la API falla, se vuelve al modo "horario preferido" (sin inventar disponibilidad)
+      // Sin respuesta fiable no se inventa disponibilidad ni se pasa a "horario preferido"
       monthAvailability = null;
       availabilityError = true;
     }
@@ -331,22 +395,33 @@
   function renderSlots() {
     const dateEl = $('[data-time-date]');
     dateEl.textContent = state.date ? cap(longDate(state.date, false)) : 'Primero elige una fecha';
-    const free = state.date && monthAvailability ? monthAvailability[state.date] || [] : null;
-    slotsEl.innerHTML = CFG.startTimes.map((t) => {
-      const disabled = !state.date || (free && !free.includes(t.value));
-      const checked = state.time === t.value && !disabled;
+    const days = state.date ? knownDays(state.date) : null;
+    const live = Boolean(days);
+    const free = live ? days[state.date] || [] : null;
+    // Horas habituales (tachadas si Cal.com no las devuelve) + cualquier otra que Cal.com ofrezca
+    const times = CFG.startTimes.map((t) => t.value);
+    if (free) free.forEach((v) => { if (!times.includes(v)) times.push(v); });
+    times.sort();
+    slotsEl.innerHTML = availabilityError ? '' : times.map((value) => {
+      const disabled = !state.date || (free && !free.includes(value));
+      const checked = state.time === value && !disabled;
       return `<label class="time-slot${checked ? ' is-selected' : ''}${disabled && state.date ? ' is-unavailable' : ''}">
-        <input class="visually-hidden" type="radio" name="hora" value="${t.value}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>
+        <input class="visually-hidden" type="radio" name="hora" value="${value}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>
         <img class="time-slot__check" src="assets/icons/check-inverse.svg" alt="" width="16" height="16">
-        <span>${t.label}</span>${disabled && state.date ? '<span class="visually-hidden">, no disponible</span>' : ''}
+        <span>${timeLabel(value)}</span>${disabled && state.date ? '<span class="visually-hidden">, no disponible</span>' : ''}
       </label>`;
     }).join('');
     const note = $('[data-time-note]');
-    note.textContent = availabilityError
-      ? 'No pudimos consultar la disponibilidad. Elige tu horario preferido y Ely te lo confirmará por WhatsApp.'
-      : (monthAvailability ? COPY.live.timeNote : COPY.manual.timeNote);
-    $('[data-time-legend]').textContent = monthAvailability ? COPY.live.timeLegend : COPY.manual.timeLegend;
+    note.textContent = availabilityError ? ERR.availability : (live || monthAvailability ? COPY.live.timeNote : COPY.manual.timeNote);
+    $('[data-time-legend]').textContent = live || monthAvailability ? COPY.live.timeLegend : COPY.manual.timeLegend;
+    $('[data-retry-availability]').hidden = !availabilityError;
   }
+
+  $('[data-retry-availability]').addEventListener('click', async () => {
+    await loadMonth();
+    renderCalendar();
+    renderSlots();
+  });
 
   async function changeMonth(delta, keepFocus) {
     const next = addMonths(state.viewMonth, delta);
@@ -701,7 +776,7 @@
   const stepValid = {
     1: () => Boolean(getService()),
     2: () => Boolean(getPackage()),
-    3: () => Boolean(state.date && state.time && dayStatus(state.date) === 'available'),
+    3: () => Boolean(state.date && state.time && dayStatus(state.date) === 'available' && slotFree(state.date, state.time)),
     4: () => currentFields().every((f) => !validateSilently(f)) && state.name.trim().length >= 2 && digits(state.phone).length === 10,
     5: () => state.consent,
   };
@@ -729,7 +804,7 @@
       if (!state.date || dayStatus(state.date) !== 'available') {
         showError('error-fecha', ERR.date);
         firstInvalid = calDays.querySelector('[tabindex="0"]');
-      } else if (!state.time) {
+      } else if (!state.time || !slotFree(state.date, state.time)) {
         showError('error-hora', ERR.time);
         firstInvalid = slotsEl.querySelector('input:not(:disabled)');
       }
@@ -825,7 +900,7 @@
       ${notice ? `<div class="notice notice--important">
         <span class="notice__bar" aria-hidden="true"></span>
         <div class="notice__content"><span class="notice__icon"><img src="assets/icons/alert.svg" alt="" width="20" height="20"></span>
-        <div class="notice__text"><p class="notice__title">Abono del 50%</p><p class="notice__body">${esc(T.notice)}</p></div></div>
+        <div class="notice__text"><p class="notice__title">Abono del 50%</p><p class="notice__body">${esc(T().notice)}</p></div></div>
       </div>` : ''}`;
   }
 
@@ -835,13 +910,16 @@
     if (!s || !p) return '';
     const dep = money(deposit(p.price));
     const lines = [];
-    if (LIVE_BOOKING) {
-      // Texto exacto de Figma (solicitud registrada por el sistema)
-      lines.push(state.step === 'success' ? 'Hola, Ely. Acabo de enviar una solicitud de reserva desde tu página web.' : 'Hola, Ely. Quiero reservar una sesión.');
+    if (isLive()) {
+      // Texto de Figma + referencia real de Cal.com (solo existe después de registrar la solicitud)
+      const sent = state.step === 'success' && Boolean(state.booking);
+      lines.push(sent ? 'Hola, Ely. Acabo de enviar una solicitud de reserva desde tu página web.' : 'Hola, Ely. Quiero reservar una sesión.');
+      if (sent) lines.push(`Referencia: ${state.booking.referencia}`);
       lines.push(`Servicio: ${s.name}`, `Paquete: ${p.name} (${money(p.price)})`);
       lines.push(`Fecha: ${longDate(state.date)}`, `Hora: ${timeLabel(state.time)} (${CFG.timezoneLabel})`);
+      detailEntries().forEach(([k, v]) => lines.push(`${k}: ${v}`));
       lines.push(`Nombre: ${state.name.trim()}`, `WhatsApp: ${state.code} ${formatPhone(state.phone)}`);
-      if (state.step === 'success') lines.push(`Quiero coordinar el abono de ${dep} (50%).`);
+      if (sent) lines.push(`Quiero coordinar el abono de ${dep} (50%).`);
     } else {
       // Sin backend: el mensaje ES la solicitud; fecha y hora son preferencias por confirmar
       lines.push('Hola, Ely. Quiero reservar una sesión.');
@@ -881,17 +959,19 @@
     $('[data-bar-total]').textContent = total;
     // Textos con el abono
     const dep = p ? money(deposit(p.price)) : 'US$0';
-    $('[data-copy="after2"]').textContent = T.after2(dep);
-    $('[data-copy="next1"]').textContent = T.next1(dep);
-    $('[data-status-meta]').textContent = `Abono requerido: ${dep} · plazo de 24 horas desde tu solicitud.`;
+    const copy = T();
+    $('[data-copy="after2"]').textContent = copy.after2(dep);
+    $('[data-copy="next1"]').textContent = copy.next1(dep);
+    $('[data-status-meta]').textContent = state.booking
+      ? `Abono requerido: ${dep} · Referencia: ${state.booking.referencia}`
+      : `Abono requerido: ${dep}`;
+    // Copias que dependen del modo (puede cambiar con el paquete o el horario)
+    $$('[data-copy="submit"]').forEach((el) => { el.textContent = copy.submit; });
+    $('[data-copy="after1"]').textContent = copy.after1;
+    $('[data-copy="badge"]').textContent = copy.badge;
+    $('[data-copy="statusTitle"]').textContent = copy.statusTitle;
+    $('[data-copy="statusText"]').textContent = copy.statusText;
   }
-
-  // Copias estáticas según el modo
-  $$('[data-copy="submit"]').forEach((el) => { el.textContent = T.submit; });
-  $('[data-copy="after1"]').textContent = T.after1;
-  $('[data-copy="badge"]').textContent = T.badge;
-  $('[data-copy="statusTitle"]').textContent = T.statusTitle;
-  $('[data-copy="statusText"]').textContent = T.statusText;
 
   /* ---------- Resumen móvil (barra expandible) ---------- */
   const bar = $('[data-action-bar]');
@@ -934,8 +1014,8 @@
       $('[data-subtitle]').textContent = info.subtitle(getService());
       document.title = `${info.name} · Reservar · Ely Salazar`;
     } else {
-      $('[data-title]').textContent = T.successTitle;
-      $('[data-subtitle]').textContent = T.successSubtitle;
+      $('[data-title]').textContent = T().successTitle;
+      $('[data-subtitle]').textContent = T().successSubtitle;
       document.title = 'Solicitud · Reservar · Ely Salazar';
     }
 
@@ -966,9 +1046,19 @@
   let depth = 0; // pasos apilados en el historial por este flujo
 
   async function goTo(step, { push = true, focus = true } = {}) {
+    let slotLost = false;
+    if (typeof step === 'number' && step >= 3) {
+      // Desde el paso 3 se necesita la disponibilidad del mes elegido (también tras recargar):
+      // decide el modo y descarta horarios que ya no estén libres.
+      if (step > 3 && state.date) state.viewMonth = monthKey(state.date);
+      if (!state.viewMonth) state.viewMonth = state.date ? monthKey(state.date) : MIN_MONTH;
+      await loadMonth();
+      if (state.date && state.time && !slotFree(state.date, state.time)) { state.time = null; slotLost = true; }
+      step = Math.min(step, maxReachable());
+    }
     state.step = step;
-    if (step === 3) { await loadMonth(); }
     renderAll();
+    if (slotLost && step === 3) showError('error-hora', ERR.slotTaken);
     store.save();
     const url = new URL(location.href);
     url.searchParams.set('paso', step === 'success' ? 'listo' : String(step));
@@ -1000,25 +1090,47 @@
   form.addEventListener('submit', (e) => e.preventDefault());
   $$('[data-submit], [data-submit-side]').forEach((b) => b.addEventListener('click', sendRequest));
 
+  const setSending = (on) => {
+    sending = on;
+    $$('[data-submit], [data-submit-side]').forEach((b) => (on ? b.setAttribute('aria-disabled', 'true') : b.removeAttribute('aria-disabled')));
+    form.setAttribute('aria-busy', String(on));
+  };
+
   async function sendRequest() {
     if (state.step !== 5 || sending) return;
     if (!validateStep(5)) return;
     hideError('error-envio');
-    if (LIVE_BOOKING) {
-      sending = true;
-      $$('[data-submit], [data-submit-side]').forEach((b) => b.setAttribute('aria-disabled', 'true'));
-      try {
-        await submitBooking(buildBookingPayload());
-      } catch (err) {
-        showError('error-envio', ERR.submit);
-        sending = false;
-        $$('[data-submit], [data-submit-side]').forEach((b) => b.removeAttribute('aria-disabled'));
-        return;
-      }
-      sending = false;
+    // Modo WhatsApp: no se registra nada; la pantalla final lo dice así
+    if (!liveSlotSelected()) {
+      state.booking = null;
+      await goTo('success');
+      store.clear();
+      return;
     }
-    await goTo('success');
-    store.clear();
+    // Modo live: la solicitud pendiente debe existir en Cal.com ANTES de mostrar éxito o WhatsApp
+    setSending(true);
+    const result = await submitBooking(buildBookingPayload());
+    setSending(false);
+    const monthCache = cacheKey(monthKey(state.date));
+    if (result.ok) {
+      const b = result.booking;
+      state.booking = { referencia: b.referencia, uid: b.uid, estado: b.estado };
+      availabilityCache.delete(monthCache); // ese horario ya no está libre
+      await goTo('success');
+      store.clear();
+      return;
+    }
+    if (result.error === 'slot_taken' || result.error === 'not_reservable') {
+      availabilityCache.delete(monthCache);
+      state.time = null;
+      await goTo(3);
+      showError('error-hora', result.error === 'slot_taken' ? ERR.slotTaken : ERR.submit);
+      return;
+    }
+    // 'uncertain': se conserva la referencia; el reintento no duplica la reserva
+    const msg = { uncertain: ERR.uncertain, price_changed: ERR.priceChanged }[result.error] || ERR.submit;
+    showError('error-envio', msg);
+    store.save();
   }
 
   // Evita enviar el formulario con Enter en campos de texto antes del paso 5

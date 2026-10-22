@@ -116,5 +116,8 @@
     s.thumb = `assets/images/reservar/thumb-${s.slug}.jpg`;
   });
 
-  window.BOOKING_DATA = { CATEGORIES, SERVICES };
+  const BOOKING_DATA = { CATEGORIES, SERVICES };
+  // El navegador lo usa como global; el backend (api/_lib) lo importa para validar precios.
+  if (typeof window !== 'undefined') window.BOOKING_DATA = BOOKING_DATA;
+  if (typeof module !== 'undefined' && module.exports) module.exports = BOOKING_DATA;
 })();

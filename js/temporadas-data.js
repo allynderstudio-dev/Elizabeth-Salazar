@@ -44,7 +44,7 @@
     horarios: 'Horarios por confirmar. Las sesiones de temporada pueden tener horarios distintos a los habituales.',
     aviso: {
       titulo: 'Reserva de temporada',
-      texto: 'Al enviar tu solicitud, tu horario queda reservado provisionalmente durante 24 horas. Para confirmar tu sesión, debes realizar un abono del 50% del valor total.',
+      texto: 'Tu horario queda apartado provisionalmente cuando tu solicitud queda registrada. Para confirmar tu sesión, debes realizar un abono del 50% del valor total.',
     },
     loQueIncluye: ['Detalles del paquete por confirmar'],
     antes: [
