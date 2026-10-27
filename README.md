@@ -161,7 +161,7 @@ Nunca los pegues en el chat, en el código ni en archivos dentro de esta carpeta
 ### Conectar un paquete
 
 1. Crea en Cal.com un evento por paquete (o por grupo de paquetes con la misma duración y reglas), con aprobación manual, teléfono obligatorio y correo oculto.
-2. Agrégalo en `api/_lib/cal-events.js`: `'embarazo/estudio': { eventTypeId: 1234567, durationMinutes: 120 }`. Si la duración no coincide con la de Cal.com, la disponibilidad falla a propósito.
+2. Agrégalo en `api/_lib/cal-events.js`, en `PRODUCTION_EVENTS`: `'embarazo/estudio': { eventTypeId: 1234567, durationMinutes: 120 }`. `TEST_EVENTS` solo se usa en la vista previa y en local (`VERCEL_ENV` distinto de `production`); hoy tiene el evento de prueba 7600420. Mientras `PRODUCTION_EVENTS` esté vacío, el sitio público atiende todo por WhatsApp y no necesita la clave. Si la duración no coincide con la de Cal.com, la disponibilidad falla a propósito.
 3. Ejecuta `npm run cal:check` (solo lectura) y prueba en local con `npm run dev`.
 
 ### Desarrollo y pruebas

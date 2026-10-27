@@ -5,12 +5,16 @@
 //
 // Un paquete que no figure aquí NO reserva en línea: el sitio lo atiende en modo WhatsApp.
 // No conectes paquetes con duraciones u horarios distintos a un mismo evento, ni todos al de prueba.
-// Ejemplo (no activo):
-//   'embarazo/estudio': { eventTypeId: 1234567, durationMinutes: 120 },
-const CAL_EVENTS = {
-  // Evento de PRUEBA "Ely — Sesión de prueba." (cal.com/dylan-nieto-y0krpq/ely-sesion-de-prueba).
-  // Reemplazar por el evento definitivo antes de publicar en producción.
+
+// Producción: vacío hasta vincular la cuenta definitiva de Cal.com (todo sigue por WhatsApp).
+// Ejemplo: 'embarazo/estudio': { eventTypeId: 1234567, durationMinutes: 120 },
+const PRODUCTION_EVENTS = {
+};
+
+// Vista previa de Vercel y desarrollo local: evento de PRUEBA "Ely — Sesión de prueba."
+// (cal.com/dylan-nieto-y0krpq/ely-sesion-de-prueba). Nunca se usa en producción.
+const TEST_EVENTS = {
   'embarazo/estudio': { eventTypeId: 7600420, durationMinutes: 120 },
 };
 
-module.exports = CAL_EVENTS;
+module.exports = process.env.VERCEL_ENV === 'production' ? PRODUCTION_EVENTS : TEST_EVENTS;
