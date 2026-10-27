@@ -6,6 +6,14 @@ const { BOOKING_CONFIG, CAL_EVENTS, findPackage, eventFor, depositFor } = requir
 const T = require('./time.js');
 
 const HOUR = 36e5;
+
+// Respuestas del formulario de Cal.com que se envían con cada reserva (identificadores de sus
+// preguntas). Así el calendario muestra de qué trata la sesión:
+//   notes    "Notas adicionales" (pregunta que trae todo evento): resumen de servicio, precio y detalles.
+//            Cal.com la muestra en la reserva y en la descripción del evento de Google Calendar.
+//   service  pregunta propia de texto corto (p. ej. identificador "servicio") con "Embarazo · Estudio",
+//            para usarla en el nombre del evento. null = no se envía (la pregunta aún no existe).
+const BOOKING_FIELDS = { notes: 'notes', service: null };
 const EXPIRY_HOURS = 24;
 const SOURCE = 'web-ely';
 
@@ -19,7 +27,7 @@ class BookingError extends Error {
   }
 }
 
-function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFIG, now = () => Date.now(), log = console } = {}) {
+function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFIG, fields = BOOKING_FIELDS, now = () => Date.now(), log = console } = {}) {
   const tz = config.timezone;
   const inflight = new Map(); // referencia → promesa (doble clic contra la misma instancia)
 
@@ -118,6 +126,23 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
   }
 
   const detailText = (entries) => entries.map(([k, v]) => `${k}: ${String(v).trim()}`).join(' · ').slice(0, 500);
+  const serviceLabel = (v) => `${v.service.name} · ${v.pkg.name}`;
+  const money = (n) => `US$${n}`;
+
+  // Resumen legible para Ely en la reserva y en Google Calendar
+  function notesText(v) {
+    const lines = [`${serviceLabel(v)} — ${money(v.price)} (abono del 50%: ${money(v.deposit)})`];
+    v.details.forEach(([k, val]) => lines.push(`${k}: ${String(val).trim()}`));
+    lines.push(`WhatsApp: ${v.phone}`, 'Solicitud enviada desde la página web.');
+    return lines.join('\n').slice(0, 1500);
+  }
+
+  function bookingFieldsResponses(v) {
+    const out = {};
+    if (fields.notes) out[fields.notes] = notesText(v);
+    if (fields.service) out[fields.service] = serviceLabel(v);
+    return out;
+  }
 
   function calInput(v) {
     return {
@@ -125,6 +150,7 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
       eventTypeId: v.event.eventTypeId,
       // Sin correo: el evento lo tiene oculto y el sitio no lo pide.
       attendee: { name: v.name, timeZone: tz, phoneNumber: v.phone, language: 'es' },
+      bookingFieldsResponses: bookingFieldsResponses(v),
       // Metadata de Cal.com: máx. 50 claves, claves ≤ 40 caracteres, valores string ≤ 500.
       metadata: {
         ref: v.ref,
@@ -265,4 +291,4 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
   return { getAvailability, createBooking, expirePending, validate, minDate, maxMonth };
 }
 
-module.exports = { createBookingService, BookingError, SOURCE, EXPIRY_HOURS };
+module.exports = { createBookingService, BookingError, SOURCE, EXPIRY_HOURS, BOOKING_FIELDS };

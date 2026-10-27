@@ -64,6 +64,7 @@ function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'),
       eventTypeId: Number(body.eventTypeId), eventType: { id: Number(body.eventTypeId), slug: `ev-${body.eventTypeId}` },
       attendees: [{ name: body.attendee.name, timeZone: body.attendee.timeZone, phoneNumber: body.attendee.phoneNumber, ...(body.attendee.email ? { email: body.attendee.email } : {}) }],
       metadata: { ...(body.metadata || {}) },
+      bookingFieldsResponses: { name: body.attendee.name, attendeePhoneNumber: body.attendee.phoneNumber, ...(body.bookingFieldsResponses || {}) },
       createdAt: new Date(now()).toISOString(), updatedAt: null,
     };
     bookings.push(b);

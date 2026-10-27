@@ -29,6 +29,30 @@ test('crea una solicitud pendiente sin correo, con datos propios en metadata', a
   assert.equal(fake.bookings[0].status, 'pending');
 });
 
+test('envía a Cal.com un resumen del servicio en "Notas adicionales"', async () => {
+  const { service, fake } = setup();
+  await service.createBooking(request());
+  const body = posts(fake)[0].body;
+  assert.deepEqual(Object.keys(body.bookingFieldsResponses), ['notes']); // "servicio" desactivada por defecto
+  assert.equal(body.bookingFieldsResponses.notes, [
+    'Embarazo · Estudio — US$70 (abono del 50%: US$35)',
+    'Semanas de embarazo: 30',
+    'Vestuario: Ambos',
+    'WhatsApp: +584121234567',
+    'Solicitud enviada desde la página web.',
+  ].join('\n'));
+  assert.match(fake.bookings[0].bookingFieldsResponses.notes, /^Embarazo · Estudio/);
+});
+
+test('con la pregunta "servicio" configurada, también envía el servicio para el título', async () => {
+  const { fake, cal } = setup();
+  const { createBookingService } = require('../api/_lib/booking-service.js');
+  const { EVENTS, NOW, silent } = require('./helpers/setup.js');
+  const service = createBookingService({ cal, events: EVENTS, now: () => NOW, log: silent, fields: { notes: 'notes', service: 'servicio' } });
+  await service.createBooking(request());
+  assert.equal(posts(fake)[0].body.bookingFieldsResponses.servicio, 'Embarazo · Estudio');
+});
+
 test('validación en el servidor', async () => {
   const { service, fake } = setup();
   const code = async (over) => service.createBooking(request(over)).then(() => 'ok', (err) => `${err.code}:${err.field || ''}`);
