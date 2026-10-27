@@ -3,12 +3,15 @@
 // - Se carga ANTES de main.js: main.js activa después el acordeón [data-faq] y los enlaces [data-whatsapp].
 // - Interacciones de Figma (27:5751): texto del storytelling fijo (sticky) que cambia por capítulo en desktop,
 //   y barra de reserva fija en mobile que aparece al salir del hero.
+// - La sesión se resuelve antes de pintar con el script inline del <head> de servicio-detalle.html
+//   (precarga la foto del hero y oculta el Embarazo estático si la URL pide otra sesión).
 // Para regenerar el Embarazo estático del HTML tras cambiar datos o plantilla:
-//   node -e "global.window={};require('./js/services-data.js');const r=require('./js/servicio-detalle.js');process.stdout.write(r('embarazo'))"
+//   node -e "global.window={};require('./js/services-data.js');const r=require('./js/servicio-detalle.js');process.stdout.write(r('embarazo',{prerender:true}))"
 //   y pega el resultado entre <!-- render:servicio --> y <!-- /render:servicio --> en servicio-detalle.html
+//   (tests/servicio-detalle.test.js comprueba que coincidan)
 (() => {
   const ICONS = 'assets/icons';
-  const WA_HREF = 'https://wa.me/584266463929';
+  const WA_HREF = 'https://wa.me/584126463929';
 
   const esc = (s) =>
     String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -38,8 +41,18 @@
                   ${items.map((t) => `<li class="feature-item"><span class="feature-item__icon">${icon(iconName)}</span><span>${esc(t)}</span></li>`).join('\n                  ')}
                 </ul>`;
 
+  // Foto del hero: aparece con un fundido al cargar (servicio.css). En el HTML estático
+  // (prerender) no lleva src: el script inline que la sigue pone la de la sesión de la URL,
+  // así nunca se descarga ni se pinta la foto de otra sesión.
+  const heroPhoto = (p, prerender) => {
+    if (!p) return photoBox(p, 'sd-hero__photo');
+    const attrs = `alt="${esc(p.alt)}" loading="eager" decoding="async" style="object-position: ${esc(p.pos)}" onload="this.classList.add('is-loaded')"`;
+    if (!prerender) return `<div class="photo sd-hero__photo"><img fetchpriority="high" src="${esc(p.src)}" ${attrs}></div>`;
+    return `<div class="photo sd-hero__photo"><img fetchpriority="high" ${attrs}><script>(function (img) { var src = 'SD_HERO' in window ? window.SD_HERO : '${esc(p.src)}'; if (src) img.src = src; })(document.currentScript.previousElementSibling);</script><noscript><img src="${esc(p.src)}" alt="${esc(p.alt)}" style="object-position: ${esc(p.pos)}"></noscript></div>`;
+  };
+
   /* ---------- Secciones ---------- */
-  const hero = (s, C) => `
+  const hero = (s, C, opts = {}) => `
     <!-- 01 Hero -->
     <section class="section sd-hero" id="sd-hero" aria-labelledby="sd-title">
       <div class="container sd-hero__inner">
@@ -58,7 +71,7 @@
             <p class="sd-hero__price"><span class="t-price">${esc(s.hero.price)}</span> <span class="t-body-sm"><span class="sd-desktop-only">${esc(C.depositHero)}</span><span class="sd-mobile-only">${esc(C.depositHeroShort)}</span></span></p>${actions(s, C, 'sd-hero__actions')}
           </div>
         </div>
-        ${photoBox(s.hero.photo, 'sd-hero__photo', 'eager').replace('<img ', '<img fetchpriority="high" ')}
+        ${heroPhoto(s.hero.photo, opts.prerender)}
       </div>
     </section>`;
 
@@ -283,10 +296,11 @@
       <a class="btn btn--primary" href="${bookingHref(s.slug)}">${esc(C.bookLabel)}</a>
     </div>`;
 
-  const render = (slug) => {
+  // opts.prerender: versión para el HTML estático (ver heroPhoto)
+  const render = (slug, opts = {}) => {
     const s = window.SERVICES_DATA[slug];
     const C = window.SERVICES_COMMON;
-    return [hero, experience, story, packages, checklists, faq, cta, stickyBar].map((fn) => fn(s, C)).join('\n') + '\n  ';
+    return [hero, experience, story, packages, checklists, faq, cta, stickyBar].map((fn) => fn(s, C, opts)).join('\n') + '\n  ';
   };
 
   // Uso desde Node para regenerar el HTML estático
@@ -303,6 +317,8 @@
   const param = new URLSearchParams(location.search).get('sesion');
   const slug = param === null ? window.SERVICES_DEFAULT : param;
   const service = DATA[slug];
+  // Contenido correcto ya en <main>: se muestra (lo ocultó el script inline del <head>)
+  const reveal = () => document.documentElement.classList.remove('sd-swap');
 
   const setMeta = (title, description) => {
     document.title = title;
@@ -333,12 +349,14 @@
     robots.name = 'robots';
     robots.content = 'noindex';
     document.head.appendChild(robots);
+    reveal();
     return;
   }
 
   if (slug !== window.SERVICES_DEFAULT || !main.querySelector('[data-story]')) {
     main.innerHTML = render(slug);
   }
+  reveal();
   setMeta(service.documentTitle, service.metaDescription);
   document.querySelector('meta[property="og:image"]')?.setAttribute('content', service.hero.photo.src);
 

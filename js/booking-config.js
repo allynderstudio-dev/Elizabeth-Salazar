@@ -14,7 +14,7 @@
     availabilityEndpoint: '/api/availability',
     bookingEndpoint: '/api/bookings',
 
-    whatsappNumber: '584266463929',
+    whatsappNumber: '584126463929',
     timezone: 'America/Caracas',
     timezoneLabel: 'hora de Venezuela',
 

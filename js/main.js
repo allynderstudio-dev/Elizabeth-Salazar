@@ -1,6 +1,6 @@
 // Utilidades globales: año dinámico, enlaces de WhatsApp con mensaje, FAQ y aparición al hacer scroll
 (() => {
-  const WHATSAPP_NUMBER = '584266463929';
+  const WHATSAPP_NUMBER = '584126463929';
   const WHATSAPP_MESSAGE = 'Hola Ely, quisiera información sobre una sesión de fotos.';
 
   document.querySelectorAll('[data-year]').forEach((el) => {
@@ -21,6 +21,23 @@
       answer.hidden = !open;
     });
   });
+
+  /* ---------- Precarga de la foto del hero al apuntar a una sesión ----------
+     Al pasar el cursor, enfocar o tocar un enlace a servicio-detalle.html?sesion=<slug>,
+     se descarga su foto del hero para que la página la tenga en caché al abrirse.
+     new Image() en vez de <link rel="prefetch">: Safari no soporta prefetch. */
+  const warmed = new Set();
+  const warmHero = (e) => {
+    const link = e.target.closest && e.target.closest('a[href*="servicio-detalle.html?"]');
+    if (!link) return;
+    const slug = new URL(link.href, location.href).searchParams.get('sesion');
+    if (!slug || !/^[a-z0-9-]+$/.test(slug) || warmed.has(slug)) return;
+    warmed.add(slug);
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = `assets/images/servicio/${slug}/hero.jpg`;
+  };
+  ['pointerover', 'focusin', 'touchstart'].forEach((type) => document.addEventListener(type, warmHero, { passive: true }));
 
   /* ---------- Aparición de secciones al hacer scroll ----------
      Solo las secciones que empiezan fuera de la pantalla; la primera nunca se oculta. */

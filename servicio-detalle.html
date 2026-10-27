@@ -13,6 +13,34 @@
   <meta property="og:image" content="assets/images/servicio/embarazo/hero.jpg">
   <meta name="theme-color" content="#f5f3ef">
   <link rel="icon" href="data:,">
+  <script>
+    // Resuelve la sesión de ?sesion= antes de pintar nada: precarga la foto de su hero y, si no es
+    // la que trae el HTML estático (Embarazo), oculta <main> hasta que js/servicio-detalle.js lo
+    // reemplace. SLUGS = claves de js/services-data.js (lo verifica tests/servicio-detalle.test.js).
+    (function () {
+      var SLUGS = ['embarazo', 'newborn', 'mes-a-mes', 'cumpleanos-infantiles', 'cumpleanos-adultos', 'quince-anos', 'revelacion-de-sexo', 'recepciones', 'familiar', 'parejas', 'fotografia-profesional-y-comercial'];
+      var DEFAULT = 'embarazo';
+      var param = new URLSearchParams(location.search).get('sesion');
+      var slug = param === null ? DEFAULT : param;
+      var root = document.documentElement;
+      root.classList.add('sd-js');
+      var known = SLUGS.indexOf(slug) !== -1;
+      window.SD_HERO = known ? 'assets/images/servicio/' + slug + '/hero.jpg' : '';
+      if (known) {
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = window.SD_HERO;
+        link.setAttribute('fetchpriority', 'high');
+        document.head.appendChild(link);
+      }
+      if (slug !== DEFAULT) {
+        root.classList.add('sd-swap');
+        // Si el script de la página fallara, nunca dejar el contenido oculto
+        setTimeout(function () { root.classList.remove('sd-swap'); }, 4000);
+      }
+    })();
+  </script>
   <link rel="preload" href="assets/fonts/Bitter-400-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/Montserrat-500-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/fonts.css">
@@ -81,11 +109,11 @@
             <p class="sd-hero__price"><span class="t-price">desde US$70</span> <span class="t-body-sm"><span class="sd-desktop-only">Abono del 50% para reservar</span><span class="sd-mobile-only">Abono del 50%</span></span></p>
           <div class="sd-hero__actions">
             <a class="btn btn--primary" href="reservar.html?sesion=embarazo">Ver disponibilidad</a>
-            <a class="btn btn--text" href="https://wa.me/584266463929" data-whatsapp="Hola Ely, quisiera información sobre la sesión de Embarazo." target="_blank" rel="noopener" aria-label="Consultar por WhatsApp, se abre en otra app"><img src="assets/icons/whatsapp.svg" alt="" width="20" height="20"><span>Consultar por WhatsApp</span></a>
+            <a class="btn btn--text" href="https://wa.me/584126463929" data-whatsapp="Hola Ely, quisiera información sobre la sesión de Embarazo." target="_blank" rel="noopener" aria-label="Consultar por WhatsApp, se abre en otra app"><img src="assets/icons/whatsapp.svg" alt="" width="20" height="20"><span>Consultar por WhatsApp</span></a>
           </div>
           </div>
         </div>
-        <div class="photo sd-hero__photo"><img fetchpriority="high" src="assets/images/servicio/embarazo/hero.jpg" alt="Mujer embarazada recostada de lado sobre telas color malva, vista desde arriba" loading="eager" decoding="async" style="object-position: 50% 50%"></div>
+        <div class="photo sd-hero__photo"><img fetchpriority="high" alt="Mujer embarazada recostada de lado sobre telas color malva, vista desde arriba" loading="eager" decoding="async" style="object-position: 50% 50%" onload="this.classList.add('is-loaded')"><script>(function (img) { var src = 'SD_HERO' in window ? window.SD_HERO : 'assets/images/servicio/embarazo/hero.jpg'; if (src) img.src = src; })(document.currentScript.previousElementSibling);</script><noscript><img src="assets/images/servicio/embarazo/hero.jpg" alt="Mujer embarazada recostada de lado sobre telas color malva, vista desde arriba" style="object-position: 50% 50%"></noscript></div>
       </div>
     </section>
 
@@ -327,7 +355,7 @@
         </div>
           <div class="sd-cta__actions">
             <a class="btn btn--primary" href="reservar.html?sesion=embarazo">Ver disponibilidad</a>
-            <a class="btn btn--text" href="https://wa.me/584266463929" data-whatsapp="Hola Ely, quisiera información sobre la sesión de Embarazo." target="_blank" rel="noopener" aria-label="Consultar por WhatsApp, se abre en otra app"><img src="assets/icons/whatsapp.svg" alt="" width="20" height="20"><span>Consultar por WhatsApp</span></a>
+            <a class="btn btn--text" href="https://wa.me/584126463929" data-whatsapp="Hola Ely, quisiera información sobre la sesión de Embarazo." target="_blank" rel="noopener" aria-label="Consultar por WhatsApp, se abre en otra app"><img src="assets/icons/whatsapp.svg" alt="" width="20" height="20"><span>Consultar por WhatsApp</span></a>
           </div>
       </div>
     </section>
@@ -341,6 +369,9 @@
     </div>
   <!-- /render:servicio -->
   </main>
+  <!-- Síncronos (sin defer) para pintar la sesión pedida en cuanto <main> existe; antes de main.js -->
+  <script src="js/services-data.js"></script>
+  <script src="js/servicio-detalle.js"></script>
 
   <!-- partial:footer -->
   <footer class="site-footer">
@@ -378,7 +409,7 @@
         <div class="footer-col">
           <p class="t-eyebrow footer-col__title">Contacto</p>
           <ul>
-            <li><a class="contact-link" data-whatsapp href="https://wa.me/584266463929" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp, se abre en otra app"><img src="assets/icons/whatsapp-inverse.svg" alt="" width="20" height="20" loading="lazy"><span>+58 426 646 3929</span></a></li>
+            <li><a class="contact-link" data-whatsapp href="https://wa.me/584126463929" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp, se abre en otra app"><img src="assets/icons/whatsapp-inverse.svg" alt="" width="20" height="20" loading="lazy"><span>+58 412 646 3929</span></a></li>
             <li><a class="contact-link" href="https://www.instagram.com/elysalazar_/" target="_blank" rel="noopener" aria-label="Instagram @elysalazar_, se abre en otra pestaña"><img src="assets/icons/instagram-inverse.svg" alt="" width="20" height="20" loading="lazy"><span>@elysalazar_</span></a></li>
             <li><p class="contact-link"><img src="assets/icons/map-pin-inverse.svg" alt="" width="20" height="20" loading="lazy">Táriba, Táchira, Venezuela</p></li>
             <li><p class="contact-link"><img src="assets/icons/calendar-inverse.svg" alt="" width="20" height="20" loading="lazy">Sesiones de lunes a sábado</p></li>
@@ -395,8 +426,6 @@
   <!-- /partial:footer -->
 
   <script src="js/navigation.js" defer></script>
-  <script src="js/services-data.js" defer></script>
-  <script src="js/servicio-detalle.js" defer></script>
   <script src="js/main.js" defer></script>
 </body>
 </html>

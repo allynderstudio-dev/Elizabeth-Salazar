@@ -73,6 +73,27 @@
   aspect-ratio: 4 / 5;
   flex-shrink: 0;
 }
+/* La URL pide otra sesión que la del HTML estático: <main> oculto hasta pintar la correcta
+   (clase puesta por el script inline del <head>; js/servicio-detalle.js la quita) */
+.sd-swap #contenido {
+  visibility: hidden;
+}
+/* Foto del hero: bloque cálido (.photo) mientras descarga y fundido al cargar */
+.sd-js .sd-hero__photo > img {
+  opacity: 0;
+  transition: opacity 400ms var(--ease);
+}
+.sd-js .sd-hero__photo > img.is-loaded {
+  opacity: 1;
+}
+.sd-hero__photo > img:not([src]) {
+  display: none;
+}
+.sd-hero__photo > noscript > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 /* ---------- 02 La experiencia ---------- */
 .sd-experience {
