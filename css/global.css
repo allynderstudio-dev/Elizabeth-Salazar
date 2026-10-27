@@ -173,6 +173,17 @@ body.is-locked {
   margin-inline: auto;
 }
 
+/* Aparición al hacer scroll (js/main.js). Sin JS o con movimiento reducido no se oculta nada. */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+}
+.reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
 /* Encabezado de sección: eyebrow + título + texto */
 .section-heading {
   display: flex;

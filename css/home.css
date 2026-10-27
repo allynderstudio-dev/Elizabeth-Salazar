@@ -5,7 +5,8 @@
   display: flex;
   align-items: stretch;
   gap: var(--spacing-64);
-  padding: var(--spacing-48) 0 var(--spacing-96) var(--spacing-80);
+  /* Izquierda alineada con el contenedor de 1280 px; el carrusel llega al borde derecho */
+  padding: var(--spacing-48) 0 var(--spacing-96) max(var(--layout-padding), calc((100% - var(--layout-container)) / 2));
   background: var(--color-background-primary);
   overflow: hidden;
   /* Ancho de la diapositiva activa: 560 px a 1440 px */
@@ -94,14 +95,29 @@
 }
 
 .carousel__viewport {
+  position: relative;
   overflow: hidden;
   touch-action: pan-y;
 }
 
+/* Slider: la pista se desplaza para dejar la diapositiva activa a la izquierda (js/home.js) */
 .carousel__track {
   display: flex;
   align-items: flex-end;
   gap: var(--spacing-24);
+  transition: transform var(--duration-slide) var(--ease);
+  will-change: transform;
+}
+.carousel__track.is-instant,
+.carousel__track.is-instant .carousel__slide {
+  transition: none;
+}
+/* Mide el ancho de una diapositiva no activa */
+.carousel__probe {
+  position: absolute;
+  visibility: hidden;
+  width: var(--slide-w-sm);
+  height: 0;
 }
 
 .carousel__slide {
@@ -111,6 +127,7 @@
   flex-shrink: 0;
   width: var(--slide-w-sm);
   cursor: pointer;
+  transition: width var(--duration-slide) var(--ease);
 }
 .carousel__slide .photo {
   width: 100%;
@@ -130,13 +147,6 @@
 }
 .carousel__slide.is-active figcaption {
   display: none;
-}
-.carousel__slide.is-entering .photo img {
-  animation: slide-in var(--duration-base) var(--ease);
-}
-@keyframes slide-in {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
 }
 
 .carousel-controls {
@@ -247,7 +257,27 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--spacing-24);
-  align-items: start;
+  align-items: stretch;
+}
+/* Tarjetas parejas: misma foto (4:5), mismo alto y pie alineado abajo.
+   El pie va apilado: a 4 columnas no caben datos, precio y enlace en una fila. */
+.service-cards .service-card {
+  height: 100%;
+}
+.service-cards .photo--tall {
+  aspect-ratio: 4 / 5;
+}
+.service-cards .service-card__footer {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+  margin-top: auto;
+}
+.service-cards .service-card__info {
+  white-space: normal;
+}
+.service-cards .service-card__footer .btn--text {
+  margin-left: calc(-1 * var(--spacing-4));
 }
 /* ---------- 04 Session Showcase ---------- */
 .showcase__inner {

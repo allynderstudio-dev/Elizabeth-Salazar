@@ -67,6 +67,7 @@
   /* Movimiento */
   --duration-fast: 150ms;
   --duration-base: 300ms;
+  --duration-slide: 600ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 }
 
@@ -82,5 +83,6 @@
   :root {
     --duration-fast: 0ms;
     --duration-base: 0ms;
+    --duration-slide: 0ms;
   }
 }
