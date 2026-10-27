@@ -57,10 +57,6 @@
   };
 
   const TEMPORADAS = [
-    { slug: 'san-valentin', nombre: 'San Valentín', mes: 'Febrero', estado: 'proximamente',
-      descripcion: 'Un recuerdo especial para celebrar el amor y compartir momentos juntos.' },
-    { slug: 'carnaval', nombre: 'Carnaval', mes: 'Febrero o marzo', estado: 'proximamente',
-      descripcion: 'Color y alegría para celebrar el Carnaval en familia.' },
     { slug: 'dia-de-la-madre', nombre: 'Día de la Madre', mes: 'Mayo', estado: 'proximamente',
       descripcion: 'Un homenaje a mamá: retratos para celebrar a quien nos cuida.' },
     { slug: 'dia-del-padre', nombre: 'Día del Padre', mes: 'Junio', estado: 'proximamente',
