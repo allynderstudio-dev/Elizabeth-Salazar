@@ -103,6 +103,12 @@
     return `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} de ${MONTHS[dt.getUTCMonth()]}${withYear ? ` de ${dt.getUTCFullYear()}` : ''}`;
   };
   const shortDate = (s) => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+  // Suma meses de calendario; si el día no existe en el mes de destino, usa el último (31/10 + 4 → 28/02)
+  const addCalendarMonths = (s, n) => {
+    const [y, m, d] = s.split('-').map(Number);
+    const last = new Date(Date.UTC(y, m - 1 + n + 1, 0)).getUTCDate();
+    return isoFromDate(new Date(Date.UTC(y, m - 1 + n, Math.min(d, last))));
+  };
   const TODAY = todayIso();
   const MIN_DATE = addDays(TODAY, CFG.minDaysAhead);
   const monthKey = (s) => s.slice(0, 7);
@@ -135,6 +141,15 @@
 
   const getService = () => DATA.SERVICES.find((s) => s.slug === state.service) || null;
   const getPackage = () => { const s = getService(); return s ? s.packages.find((p) => p.slug === state.pkg) || null : null; };
+  // Precio del paquete elegido con sus recargos (Newborn: bebés adicionales). null sin paquete.
+  const getQuote = () => {
+    const s = getService();
+    const p = getPackage();
+    if (!s || !p) return null;
+    const rule = s.babies;
+    const babies = rule ? Math.min(rule.max, Math.max(rule.min, Math.round(Number(state.details[rule.field])) || rule.min)) : undefined;
+    return DATA.quote(s, p, babies);
+  };
   const findPackage = (service, param) => {
     const n = normalize(param);
     return service.packages.find((p) => p.slug === n || normalize(p.name) === n) || null;
@@ -188,9 +203,11 @@
   function buildBookingPayload() {
     const s = getService();
     const p = getPackage();
+    const q = getQuote();
     return {
       referencia: requestRef(),
-      servicio: s.slug, paquete: p.slug, precio: p.price, abono: deposit(p.price),
+      servicio: s.slug, paquete: p.slug, precio: q.total, abono: deposit(q.total),
+      ...(q.babies ? { bebes: q.babies } : {}),
       fecha: state.date, hora: state.time, zonaHoraria: CFG.timezone,
       nombre: state.name.trim(), whatsapp: `${state.code}${digits(state.phone)}`,
       detalles: detailEntries().reduce((o, [label, value]) => ({ ...o, [label]: value }), {}),
@@ -500,6 +517,21 @@
   const NOTES = { type: 'textarea', name: 'notas', label: 'Cuéntanos un poco más', optional: true, placeholder: 'Comparte ideas, estilos o detalles importantes para tu sesión.', helper: 'Estilos, colores o personas que participarán' };
   const YES_NO = ['Sí', 'No'];
 
+  // Edad del bebé el día de la sesión (no hoy), en meses de calendario y días.
+  // Newborn es hasta los 3 meses: elegible mientras la sesión sea antes de nacimiento + 4 meses.
+  // null si falta la fecha o es posterior a hoy.
+  function babyAge(birth) {
+    if (!birth || !/^\d{4}-\d{2}-\d{2}$/.test(birth) || birth > TODAY) return null;
+    const session = state.date || MIN_DATE;
+    let months = 0;
+    while (addCalendarMonths(birth, months + 1) <= session) months += 1;
+    const days = Math.round((parseIso(session) - parseIso(addCalendarMonths(birth, months))) / 864e5);
+    const dayText = `${days} ${days === 1 ? 'día' : 'días'}`;
+    const monthText = `${months} ${months === 1 ? 'mes' : 'meses'}`;
+    const label = months === 0 ? dayText : days === 0 ? monthText : `${monthText} y ${dayText}`;
+    return { months, days, label, eligible: session < addCalendarMonths(birth, 4) };
+  }
+
   // Definiciones (Figma: Paso 4 Embarazo + "Conditional detail forms").
   // summary: texto corto para el resumen (derivado).
   const FORMS = {
@@ -517,21 +549,27 @@
     newborn: [
       { type: 'radio', name: 'nacio', label: '¿Tu bebé ya nació?', options: YES_NO },
       { row: [
-        { type: 'date', name: 'nacimiento', label: 'Fecha de nacimiento', max: TODAY, when: (d) => d.nacio === 'Sí' },
-        { type: 'computed', name: 'edad', label: 'Edad del bebé', helper: 'Se calcula con la fecha de nacimiento.', when: (d) => d.nacio === 'Sí',
-          compute: (d) => { if (!d.nacimiento) return ''; const days = Math.round((parseIso(TODAY) - parseIso(d.nacimiento)) / 864e5); return days >= 0 ? `${days} ${days === 1 ? 'día' : 'días'}` : ''; },
+        { type: 'date', name: 'nacimiento', label: 'Fecha de nacimiento', max: TODAY, maxError: 'La fecha de nacimiento no puede ser posterior a hoy.', when: (d) => d.nacio === 'Sí' },
+        { type: 'computed', name: 'edad', label: 'Edad del bebé', when: (d) => d.nacio === 'Sí',
+          helper: () => `Calculada a la fecha de tu sesión${state.date ? ` (${shortDate(state.date)})` : ''}.`,
+          compute: (d) => { const a = babyAge(d.nacimiento); return a ? a.label : ''; },
           summary: (v) => (v ? `Edad del bebé: ${v}` : '') },
         { type: 'date', name: 'fpp', label: 'Fecha probable de parto', min: TODAY, when: (d) => d.nacio === 'No', summary: (v) => `Fecha probable de parto: ${shortDate(v)}` },
       ] },
       { row: [
-        { type: 'stepper', name: 'bebes', label: 'Cantidad de bebés', value: 1, min: 1, max: 3, unit: 'bebé', summary: (v) => `Bebés: ${v}` },
+        { type: 'stepper', name: 'bebes', label: 'Cantidad de bebés', value: 1, min: 1, max: 3, unit: 'bebé', helper: 'El precio incluye un bebé. Cada bebé adicional suma US$20.', summary: (v) => `Bebés: ${v}` },
         { type: 'stepper', name: 'acompanantes', label: 'Acompañantes', value: 1, min: 0, max: 1, unit: 'persona', helper: 'Una persona puede acompañarte para ayudar.' },
       ] },
-      { type: 'notice', title: 'Edad de tu bebé', body: 'El posado clásico Newborn es entre el día 8 y el 12 de nacido. Si tu bebé tiene más de 15 días, prepararemos una sesión adecuada a su edad.' },
+      // Bloquea el paso si el bebé tendrá 4 meses o más el día de la sesión
+      { type: 'gate', name: 'elegible', title: 'Sesión Newborn no disponible',
+        body: 'Las sesiones Newborn están disponibles para bebés de hasta 3 meses. A partir del cuarto mes, te recomendamos nuestra sesión Mes a Mes.',
+        action: { label: 'Ver sesión Mes a Mes', href: 'servicio-detalle.html?sesion=mes-a-mes' },
+        when: (d) => d.nacio === 'Sí' && Boolean(babyAge(d.nacimiento)) && !babyAge(d.nacimiento).eligible },
+      { type: 'notice', title: 'Edad de tu bebé', body: 'Las sesiones Newborn son para bebés de hasta 3 meses. El posado clásico es entre el día 8 y el 12 de nacido; si tu bebé tiene más de 15 días, prepararemos una sesión adecuada a su edad.' },
     ],
     'cumpleanos-infantiles': [
       { row: [
-        { type: 'stepper', name: 'edad', label: 'Edad que cumple', value: 3, min: 2, max: 6, unit: 'año', helper: 'Sesiones para niñas y niños de 2 a 6 años.', summary: (v) => `Edad que cumple: ${v}` },
+        { type: 'stepper', name: 'edad', label: 'Edad que cumple', value: 3, min: 2, max: 14, unit: 'año', helper: 'Sesiones para niñas y niños de 2 a 14 años.', summary: (v) => `Edad que cumple: ${v}` },
         { type: 'date', name: 'cumple', label: 'Fecha del cumpleaños' },
       ] },
       { type: 'text', name: 'tematica', label: 'Temática', placeholder: 'Ej.: mariposas, safari o flores', helper: 'Pídela con 2 semanas de anticipación. No trabajamos temáticas de personajes.', when: pkgFlag('tematica'), summary: (v) => `Temática: ${v}` },
@@ -561,8 +599,10 @@
   const currentFields = () => allFields(FORMS[(getService() || {}).form] || []);
   const visible = (f) => !f.when || f.when(state.details);
 
+  const helperText = (f) => (typeof f.helper === 'function' ? f.helper() : f.helper || '');
+
   function fieldMessage(f, id) {
-    return `<p class="field-message" id="${id}-msg" aria-live="polite" data-helper="${esc(f.helper || '')}">${esc(f.helper || '')}</p>`;
+    return `<p class="field-message" id="${id}-msg" aria-live="polite" data-helper="${esc(helperText(f))}">${esc(helperText(f))}</p>`;
   }
 
   function labelHTML(f, forId) {
@@ -625,6 +665,12 @@
         <div class="notice__content"><span class="notice__icon"><img src="assets/icons/info-notice.svg" alt="" width="20" height="20"></span>
         <div class="notice__text"><p class="notice__title">${esc(f.title)}</p><p class="notice__body">${esc(f.body)}</p></div></div>
       </div>`;
+      case 'gate': return `<div class="notice notice--important" data-field="${f.name}" id="${id}" tabindex="-1" role="alert">
+        <span class="notice__bar" aria-hidden="true"></span>
+        <div class="notice__content"><span class="notice__icon"><img src="assets/icons/alert.svg" alt="" width="20" height="20"></span>
+        <div class="notice__text"><p class="notice__title">${esc(f.title)}</p><p class="notice__body">${esc(f.body)}</p>
+        <p class="notice__action"><a class="btn btn--secondary" href="${esc(f.action.href)}">${esc(f.action.label)}</a></p></div></div>
+      </div>`;
       default: return '';
     }
   }
@@ -651,8 +697,19 @@
       const el = detailsEl.querySelector(`[data-field="${f.name}"]`);
       if (!el) return;
       el.hidden = !visible(f);
-      if (f.type === 'computed') el.querySelector('output').textContent = f.compute(state.details);
+      if (f.type === 'computed') {
+        el.querySelector('output').textContent = f.compute(state.details);
+        const msg = el.querySelector('.field-message');
+        msg.dataset.helper = helperText(f);
+        if (!msg.classList.contains('field-message--error')) msg.textContent = msg.dataset.helper;
+      }
     });
+    // Newborn fuera de edad o fecha de nacimiento futura: "Continuar" queda deshabilitado
+    const blocked = currentFields().some((f) => visible(f)
+      && ((f.type === 'gate') || (f.maxError && state.details[f.name] > f.max)));
+    const next = $('[data-next]');
+    if (blocked && state.step === 4) next.setAttribute('aria-disabled', 'true');
+    else next.removeAttribute('aria-disabled');
     $$('.form-row', detailsEl).forEach((row) => {
       row.hidden = [...row.children].every((c) => c.hidden);
     });
@@ -745,6 +802,7 @@
     }
     const f = currentFields().find((x) => x.name === name);
     if (!f || f.type === 'computed') return '';
+    if (f.type === 'gate') return visible(f) ? f.title : '';
     const id = `d-${f.name}`;
     const wrapper = detailsEl.querySelector(`[data-field="${f.name}"]`);
     const control = f.type === 'radio' ? wrapper : document.getElementById(id);
@@ -754,7 +812,7 @@
       const v = state.details[f.name];
       if (v === undefined || v === null || String(v).trim() === '') msg = ERR.required;
       else if (f.type === 'date' && f.min && v < f.min) msg = ERR.dateFuture;
-      else if (f.type === 'date' && f.max && v > f.max) msg = ERR.datePast;
+      else if (f.type === 'date' && f.max && v > f.max) msg = f.maxError || ERR.datePast;
       else if (f.type === 'stepper' && (Number(v) < f.min || Number(v) > f.max)) msg = `Elige un número entre ${f.min} y ${f.max}.`;
     }
     setFieldError(control, msgEl, msg);
@@ -782,6 +840,7 @@
   };
 
   function validateSilently(f) {
+    if (f.type === 'gate') return visible(f);
     if (!visible(f) || f.optional || f.type === 'computed') return false;
     const v = state.details[f.name];
     if (v === undefined || v === null || String(v).trim() === '') return true;
@@ -880,6 +939,7 @@
   function summaryHTML({ title = true, notice = true } = {}) {
     const s = getService();
     const p = getPackage();
+    const q = getQuote();
     const contactDone = state.step >= 5 || state.step === 'success';
     const contact = contactDone ? [state.name.trim(), `${state.code} ${formatPhone(state.phone)}`] : null;
     const rows = [
@@ -893,9 +953,11 @@
     return `${title ? '<h2 class="summary-card__title">Resumen de tu reserva</h2>' : ''}
       <dl class="summary-rows">${rows.map(([k, v]) => `<div class="summary-row"><dt>${k}</dt><dd>${v.map(esc).join('<br>')}</dd></div>`).join('')}</dl>
       <hr class="summary-card__divider">
-      <dl class="summary-totals">
-        <div class="summary-row summary-row--total"><dt>Precio total</dt><dd>${p ? money(p.price) : '—'}</dd></div>
-        <div class="summary-row summary-row--total"><dt>Abono requerido (50%)</dt><dd>${p ? money(deposit(p.price)) : '—'}</dd></div>
+      <dl class="summary-totals">${q && q.extra ? `
+        <div class="summary-row"><dt>${esc(p.name)}</dt><dd>${money(q.base)}</dd></div>
+        <div class="summary-row"><dt>${q.extra === 1 ? 'Bebé adicional' : `Bebés adicionales (${q.extra})`}</dt><dd>${money(q.surcharge)}</dd></div>` : ''}
+        <div class="summary-row summary-row--total"><dt>Precio total</dt><dd>${q ? money(q.total) : '—'}</dd></div>
+        <div class="summary-row summary-row--total"><dt>Abono requerido (50%)</dt><dd>${q ? money(deposit(q.total)) : '—'}</dd></div>
       </dl>
       ${notice ? `<div class="notice notice--important">
         <span class="notice__bar" aria-hidden="true"></span>
@@ -908,24 +970,30 @@
     const s = getService();
     const p = getPackage();
     if (!s || !p) return '';
-    const dep = money(deposit(p.price));
+    const q = getQuote();
+    const dep = money(deposit(q.total));
+    // Con bebés adicionales: cantidad, recargo y total en vez de la línea "Cantidad de bebés"
+    const priceLines = q.extra
+      ? [`Bebés: ${q.babies} (${q.extra === 1 ? 'bebé adicional' : 'bebés adicionales'}: ${money(q.surcharge)})`, `Total: ${money(q.total)} · Abono (50%): ${dep}`]
+      : [];
+    const details = () => detailEntries().filter(([k]) => !(q.extra && k === 'Cantidad de bebés'));
     const lines = [];
     if (isLive()) {
       // Texto de Figma + referencia real de Cal.com (solo existe después de registrar la solicitud)
       const sent = state.step === 'success' && Boolean(state.booking);
       lines.push(sent ? 'Hola, Ely. Acabo de enviar una solicitud de reserva desde tu página web.' : 'Hola, Ely. Quiero reservar una sesión.');
       if (sent) lines.push(`Referencia: ${state.booking.referencia}`);
-      lines.push(`Servicio: ${s.name}`, `Paquete: ${p.name} (${money(p.price)})`);
+      lines.push(`Servicio: ${s.name}`, `Paquete: ${p.name} (${money(p.price)})`, ...priceLines);
       lines.push(`Fecha: ${longDate(state.date)}`, `Hora: ${timeLabel(state.time)} (${CFG.timezoneLabel})`);
-      detailEntries().forEach(([k, v]) => lines.push(`${k}: ${v}`));
+      details().forEach(([k, v]) => lines.push(`${k}: ${v}`));
       lines.push(`Nombre: ${state.name.trim()}`, `WhatsApp: ${state.code} ${formatPhone(state.phone)}`);
       if (sent) lines.push(`Quiero coordinar el abono de ${dep} (50%).`);
     } else {
       // Sin backend: el mensaje ES la solicitud; fecha y hora son preferencias por confirmar
       lines.push('Hola, Ely. Quiero reservar una sesión.');
-      lines.push(`Servicio: ${s.name}`, `Paquete: ${p.name} (${money(p.price)})`);
+      lines.push(`Servicio: ${s.name}`, `Paquete: ${p.name} (${money(p.price)})`, ...priceLines);
       lines.push(`Fecha preferida: ${longDate(state.date)}`, `Hora preferida: ${timeLabel(state.time)} (${CFG.timezoneLabel})`);
-      detailEntries().forEach(([k, v]) => lines.push(`${k}: ${v}`));
+      details().forEach(([k, v]) => lines.push(`${k}: ${v}`));
       lines.push(`Nombre: ${state.name.trim()}`, `WhatsApp: ${state.code} ${formatPhone(state.phone)}`);
       lines.push(`Quiero coordinar el abono de ${dep} (50%).`);
     }
@@ -942,7 +1010,6 @@
 
   function renderSummaries() {
     const step = state.step;
-    const p = getPackage();
     const s = getService();
     $('[data-summary="aside"]').innerHTML = summaryHTML({ notice: step !== 'success' });
     $('[data-summary="bar"]').innerHTML = summaryHTML({ title: false });
@@ -954,11 +1021,12 @@
     }
     // Total en la barra móvil
     let total = '—';
-    if (p) total = money(p.price);
+    const q = getQuote();
+    if (q) total = money(q.total);
     else if (s) total = `${s.packages.length > 1 ? 'desde ' : ''}${money(Math.min(...s.packages.map((x) => x.price)))}`;
     $('[data-bar-total]').textContent = total;
     // Textos con el abono
-    const dep = p ? money(deposit(p.price)) : 'US$0';
+    const dep = q ? money(deposit(q.total)) : 'US$0';
     const copy = T();
     $('[data-copy="after2"]').textContent = copy.after2(dep);
     $('[data-copy="next1"]').textContent = copy.next1(dep);

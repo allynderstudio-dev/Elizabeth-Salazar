@@ -1346,3 +1346,12 @@ input:checked + .radio-mark::after {
     text-decoration: none;
   }
 }
+
+/* Continuar deshabilitado mientras un aviso bloquea el paso (Newborn fuera de edad) */
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.notice__action {
+  margin-top: var(--spacing-8);
+}

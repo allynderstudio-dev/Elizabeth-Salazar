@@ -18,8 +18,9 @@ test('crea una solicitud pendiente sin correo, con datos propios en metadata', a
   assert.equal('email' in body.attendee, false);
   assert.deepEqual(body.attendee, { name: 'María Pérez', timeZone: 'America/Caracas', phoneNumber: '+584121234567', language: 'es' });
   assert.equal(body.metadata.ref, 'ref-0000000000000001');
-  assert.equal(body.metadata.precioUSD, '70');
-  assert.equal(body.metadata.abonoUSD, '35');
+  assert.equal(body.metadata.precioUSD, '80');
+  assert.equal(body.metadata.abonoUSD, '40');
+  assert.equal('bebes' in body.metadata, false);
   assert.equal(body.metadata.venceEn, '2026-11-03T12:00:00.000Z'); // 24 h desde la creación
   assert.ok(Object.keys(body.metadata).every((k) => k.length <= 40));
   assert.ok(Object.values(body.metadata).every((v) => typeof v === 'string' && v.length <= 500));
@@ -35,7 +36,7 @@ test('envía a Cal.com un resumen del servicio en "Notas adicionales"', async ()
   const body = posts(fake)[0].body;
   assert.deepEqual(Object.keys(body.bookingFieldsResponses), ['notes']); // "servicio" desactivada por defecto
   assert.equal(body.bookingFieldsResponses.notes, [
-    'Embarazo · Estudio — US$70 (abono del 50%: US$35)',
+    'Embarazo · Estudio — US$80 (abono del 50%: US$40)',
     'Semanas de embarazo: 30',
     'Vestuario: Ambos',
     'WhatsApp: +584121234567',
@@ -53,6 +54,28 @@ test('con la pregunta "servicio" configurada, también envía el servicio para e
   assert.equal(posts(fake)[0].body.bookingFieldsResponses.servicio, 'Embarazo · Estudio');
 });
 
+test('Newborn: cada bebé adicional suma US$20 y el servidor lo valida', async () => {
+  const { setup: _s, EVENTS } = require('./helpers/setup.js');
+  const { service, fake } = _s({ events: { ...EVENTS, 'newborn/sesion-newborn': EVENTS['embarazo/estudio'] } });
+  const newborn = (over) => request({ servicio: 'newborn', paquete: 'sesion-newborn', detalles: { 'Cantidad de bebés': 2 }, ...over });
+  const code = async (over) => service.createBooking(newborn(over)).then(() => 'ok', (err) => `${err.code}:${err.field || ''}`);
+  assert.equal(await code({ precio: 80, abono: 40 }), 'invalid:bebes'); // falta la cantidad
+  assert.equal(await code({ precio: 80, abono: 40, bebes: 4 }), 'invalid:bebes'); // máximo 3
+  assert.equal(await code({ precio: 80, abono: 40, bebes: '2' }), 'invalid:bebes');
+  await assert.rejects(service.createBooking(newborn({ precio: 80, abono: 40, bebes: 2 })), (err) => err.code === 'price_changed' && err.precio === 100 && err.abono === 50);
+  assert.equal(posts(fake).length, 0);
+
+  const out = await service.createBooking(newborn({ precio: 100, abono: 50, bebes: 2 }));
+  assert.equal(out.precio, 100);
+  assert.equal(out.abono, 50);
+  const body = posts(fake)[0].body;
+  assert.equal(body.metadata.precioUSD, '100');
+  assert.equal(body.metadata.abonoUSD, '50');
+  assert.equal(body.metadata.bebes, '2');
+  assert.equal(body.metadata.recargoUSD, '20');
+  assert.match(body.bookingFieldsResponses.notes, /^Newborn · Sesión Newborn — US\$100 \(abono del 50%: US\$50\)\nBebés: 2 \(paquete US\$80 \+ bebé adicional US\$20\)\n/);
+});
+
 test('validación en el servidor', async () => {
   const { service, fake } = setup();
   const code = async (over) => service.createBooking(request(over)).then(() => 'ok', (err) => `${err.code}:${err.field || ''}`);
@@ -67,8 +90,8 @@ test('validación en el servidor', async () => {
   assert.equal(await code({ referencia: 'corta' }), 'invalid:referencia');
   assert.equal(await code({ detalles: { x: 'a'.repeat(501) } }), 'invalid:detalles');
   assert.equal(await code({ precio: 10, abono: 5 }), 'price_changed:');
-  assert.equal(await code({ abono: 70 }), 'price_changed:');
-  assert.equal(await code({ servicio: 'newborn', paquete: 'sesion-newborn', precio: 70, abono: 35 }), 'not_reservable:');
+  assert.equal(await code({ abono: 80 }), 'price_changed:');
+  assert.equal(await code({ servicio: 'newborn', paquete: 'sesion-newborn', precio: 80, abono: 40, bebes: 1 }), 'not_reservable:');
   assert.equal(await code({ hora: '09:00' }), 'slot_taken:'); // Cal.com no ofrece ese horario
   assert.equal(posts(fake).length, 0, 'nada inválido llega a Cal.com');
 });
@@ -115,7 +138,7 @@ test('dos clientes por el mismo horario: uno gana y el otro recibe slot_taken', 
 test('solapamiento entre paquetes al crear: Cal.com rechaza y se informa slot_taken', async () => {
   const { service, fake } = setup();
   await service.createBooking(request({ hora: '10:00' }));
-  const quince = request({ referencia: 'ref-quince-00000001', servicio: 'quince-anos', paquete: 'recepcion', precio: 380, abono: 190, hora: '08:00', detalles: {} });
+  const quince = request({ referencia: 'ref-quince-00000001', servicio: 'quince-anos', paquete: 'recepcion', precio: 400, abono: 200, hora: '08:00', detalles: {} });
   await assert.rejects(service.createBooking(quince), (err) => err.code === 'slot_taken');
   assert.equal(fake.bookings.length, 1);
 });

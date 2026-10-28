@@ -77,7 +77,8 @@ python3 tools/check-links.py
 ```
 
 - **Contenido de sesiones:** está en `js/services-data.js`. El de temporadas, en `js/temporadas-data.js` (incluido el estado de cada una: `proximamente` o `abiertas`).
-- **Catálogo y precios del flujo de reserva:** están en `js/booking-data.js`.
+- **Catálogo y precios del flujo de reserva:** están en `js/booking-data.js`. Los precios de las páginas de servicio están en `js/services-data.js` (el «desde» del hero se calcula con el paquete más barato); si cambias un precio, cámbialo en los dos archivos y en las tarjetas de `index.html`, `js/home.js` y `servicios.html`.
+- **Newborn:** el precio incluye un bebé y cada bebé adicional suma US$20 (`quote` en `js/booking-data.js`, que usan el navegador y el servidor; máximo 3 hasta que Ely confirme otro). La sesión es para bebés de hasta 3 meses **el día de la sesión**: desde nacimiento + 4 meses de calendario, el paso 4 se bloquea y ofrece Mes a Mes. Esta regla de edad solo se valida en el navegador.
 
 ## Despliegue
 
@@ -118,7 +119,7 @@ Cal.com es la **única fuente de verdad**: no hay base de datos. Los datos propi
 ### Qué hace
 
 - **Disponibilidad real** (`GET /api/availability`): consulta `/v2/slots` del evento del paquete. Solo muestra los horarios que Cal.com devuelve libres, convertidos a hora de Caracas desde el instante UTC. Si Cal.com falla, el sitio no ofrece ningún día y muestra "Reintentar".
-- **Solicitud pendiente** (`POST /api/bookings`): valida datos, precio y abono del 50 % en el servidor. Vuelve a comprobar que el horario siga libre, crea la reserva (pendiente de aprobación) **sin correo** y relee el `uid` en Cal.com para verificarlo. Solo entonces el sitio muestra "Recibimos tu solicitud" y el enlace a WhatsApp con la referencia.
+- **Solicitud pendiente** (`POST /api/bookings`): valida datos, precio y abono del 50 % en el servidor (en Newborn, con los bebés adicionales: el cuerpo trae `bebes` y la reserva guarda `bebes` y `recargoUSD` en el metadata). Vuelve a comprobar que el horario siga libre, crea la reserva (pendiente de aprobación) **sin correo** y relee el `uid` en Cal.com para verificarlo. Solo entonces el sitio muestra "Recibimos tu solicitud" y el enlace a WhatsApp con la referencia.
 - **Sin duplicados**: el navegador genera una referencia por solicitud y la reutiliza en los reintentos. Cal.com no documenta idempotencia, así que antes de crear (y después de un conflicto o de una respuesta perdida) el servidor busca en Cal.com una reserva con esa referencia. El doble clic se bloquea en el navegador y en el servidor. Entre instancias distintas, el bloqueo del horario por la reserva pendiente impide la segunda creación.
 - **Paquetes sin evento**: siguen en modo WhatsApp ("horario preferido", "Preparar solicitud por WhatsApp", "Pendiente de envío") y no se registra nada.
 - **Abono**: se coordina por WhatsApp o en persona. Cuando Ely recibe el abono, **confirma la reserva en Cal.com**. Ese es el registro del pago; no hay panel aparte.

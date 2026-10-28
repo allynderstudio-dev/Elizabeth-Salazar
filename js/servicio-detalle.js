@@ -234,18 +234,59 @@
     </section>`;
   };
 
-  const checklists = (s, C) => `
-    <!-- 06 Lo que incluye + 07 Preparación -->
-    <section class="section sd-checklists" aria-label="${esc(C.includedTitle)} y ${esc(C.preparationTitle.toLowerCase())}">
+  // «06 Vestuario y accesorios» (solo Embarazo, Figma 215:9100). Sin fotos hasta que Ely las envíe.
+  const wardrobe = (s) =>
+    s.wardrobe
+      ? `
+    <!-- 06 Vestuario y accesorios -->
+    <section class="section sd-wardrobe" aria-label="Vestuario y accesorios">
+      <div class="container sd-wardrobe__inner">${s.wardrobe
+        .map(
+          (b, i) => `
+        <div class="sd-wardrobe__block">
+          <div class="sd-wardrobe__titles">
+            <p class="t-eyebrow">${esc(b.eyebrow)}</p>
+            <h2 class="t-h2 sd-title-m" id="sd-wardrobe-${i + 1}">${esc(b.title)}</h2>
+          </div>
+          <p class="sd-badge">${esc(b.badge)}</p>
+          <p class="t-body-lg">${esc(b.body)}</p>
+          <p class="t-body-sm sd-wardrobe__note">${esc(b.note)}</p>
+        </div>`
+        )
+        .join('')}
+      </div>
+    </section>`
+      : '';
+
+  // Preparación: lista simple, o con etiqueta por ítem (Embarazo: «Recomendaciones para tu sesión»)
+  const preparationList = (items) =>
+    typeof items[0] === 'string'
+      ? featureList(items, 'check')
+      : `
+                <ul class="feature-list sd-recs">
+                  ${items
+                    .map(
+                      (r) =>
+                        `<li class="feature-item"><span class="feature-item__icon">${icon('check')}</span><span class="sd-rec"><span class="sd-rec__label">${esc(r.label)}${r.badge ? ` <span class="sd-badge sd-badge--small">${esc(r.badge)}</span>` : ''}</span><span>${esc(r.text)}</span></span></li>`
+                    )
+                    .join('\n                  ')}
+                </ul>`;
+
+  const checklists = (s, C) => {
+    const prepTitle = s.preparationTitle || C.preparationTitle;
+    return `
+    <!-- 07 Lo que incluye + 08 Preparación -->
+    <section class="section sd-checklists" aria-label="${esc(C.includedTitle)} y ${esc(prepTitle.toLowerCase())}">
       <div class="container sd-checklists__inner">
         <div class="sd-checklist">
           <h2 class="sd-checklist__title">${esc(C.includedTitle)}</h2>${featureList(s.included, 'check')}
         </div>
         <div class="sd-checklist">
-          <h2 class="sd-checklist__title">${esc(C.preparationTitle)}</h2>${featureList(s.preparation, 'check')}
+          <h2 class="sd-checklist__title">${esc(prepTitle)}</h2>${preparationList(s.preparation)}
         </div>
       </div>
     </section>`;
+  };
 
   const faq = (s, C) => `
     <!-- 08 FAQ -->
@@ -300,7 +341,7 @@
   const render = (slug, opts = {}) => {
     const s = window.SERVICES_DATA[slug];
     const C = window.SERVICES_COMMON;
-    return [hero, experience, story, packages, checklists, faq, cta, stickyBar].map((fn) => fn(s, C, opts)).join('\n') + '\n  ';
+    return [hero, experience, story, packages, wardrobe, checklists, faq, cta, stickyBar].map((fn) => fn(s, C, opts)).join('\n') + '\n  ';
   };
 
   // Uso desde Node para regenerar el HTML estático

@@ -342,6 +342,61 @@
   width: 100%;
 }
 
+/* ---------- 06 Vestuario y accesorios (solo Embarazo, Figma 215:9100) ---------- */
+.sd-wardrobe__inner {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-80);
+}
+.sd-wardrobe__block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-16);
+  padding-top: var(--spacing-32);
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.sd-wardrobe__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.sd-wardrobe__note {
+  color: var(--color-text-muted);
+}
+
+/* Badge (pill), como el de Temporada: «Sin costo adicional», «Costo adicional» */
+.sd-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-4) var(--spacing-12);
+  border: var(--border-width-default) solid var(--color-border-default);
+  border-radius: var(--radius-pill);
+  background: var(--color-background-secondary);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+.sd-badge--small {
+  padding: 0 var(--spacing-8);
+  font-size: 12px;
+  vertical-align: 1px;
+}
+
+/* Recomendaciones con etiqueta (Embarazo) */
+.sd-rec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.sd-rec__label {
+  font-weight: 600;
+}
+
 /* ---------- 06 Lo que incluye + 07 Antes de tu sesión ---------- */
 .sd-checklists {
   padding-bottom: var(--spacing-64);
@@ -506,6 +561,9 @@
   .sd-checklists__inner {
     gap: var(--spacing-40);
   }
+  .sd-wardrobe__inner {
+    gap: var(--spacing-40);
+  }
   .sd-faq__inner {
     flex-direction: column;
     gap: var(--spacing-32);
@@ -643,6 +701,11 @@
   }
   .sd-packages__photo {
     display: none;
+  }
+
+  .sd-wardrobe__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-48);
   }
 
   /* 06 + 07 */

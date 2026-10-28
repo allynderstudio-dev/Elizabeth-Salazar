@@ -19,11 +19,11 @@
      Familiar, Parejas y Cumpleaños usan el texto de su categoría en "Testigo de tu historia"
      hasta tener el copy definitivo (ver README). */
   const SLIDES = [
-    { key: 'embarazo', service: 'Embarazo', description: 'Retratos de tu embarazo entre la semana 28 y la 32, en el estudio o en exteriores.', meta: '2 a 3 h · desde US$70' },
-    { key: 'newborn', service: 'Newborn', description: 'La ternura de los primeros días, con posado clásico entre el día 8 y el 12 de nacido.', meta: '2 a 3 h · desde US$70' },
-    { key: 'familiar', service: 'Familiar', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', meta: '2 h · desde US$70' },
-    { key: 'quince-anos', service: 'Quince años', description: 'Estudio, iglesia, exteriores o la cobertura de tu recepción.', meta: '2 a 3 h · desde US$70' },
-    { key: 'parejas', service: 'Parejas', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', meta: '2 h · desde US$70' },
+    { key: 'embarazo', service: 'Embarazo', description: 'Retratos de tu embarazo entre la semana 28 y la 32, en el estudio o en exteriores.', meta: '2 a 3 h · desde US$80' },
+    { key: 'newborn', service: 'Newborn', description: 'La ternura de los primeros días, con posado clásico entre el día 8 y el 12 de nacido.', meta: '2 a 3 h · desde US$80' },
+    { key: 'familiar', service: 'Familiar', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', meta: '2 h · US$80' },
+    { key: 'quince-anos', service: 'Quince años', description: 'Estudio, iglesia, exteriores o la cobertura de tu recepción.', meta: '2 a 3 h · desde US$80' },
+    { key: 'parejas', service: 'Parejas', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', meta: '2 h · US$80' },
     { key: 'cumpleanos-infantiles', service: 'Cumpleaños', description: 'Cumpleaños infantiles y de adultos, quince años, revelación de sexo y recepciones.', meta: '2 a 3 h · desde US$70' },
   ];
 
@@ -139,11 +139,11 @@
      Figma define Embarazo (por defecto) y Newborn (estado). El resto toma
      duración, fotos y precio de su categoría (ver README). */
   const SERVICES = {
-    embarazo: { title: 'Embarazo', description: 'Entre la semana 28 y la 32 de embarazo, con vestidos, telas y coronas del estudio.', duration: '2 a 3 horas', photos: '6 a 20 fotos digitales', price: 'desde US$70', photo: 'sel-embarazo.jpg', alt: 'Mujer embarazada con sombrero negro sentada sobre un cubo blanco', slug: 'embarazo' },
-    newborn: { title: 'Newborn', description: 'Entre el día 8 y el 12 de nacido, con fondos y escenografía del estudio.', duration: '2 a 3 horas', photos: '6 fotos digitales', price: 'desde US$70', photo: 'sel-newborn.jpg', alt: 'Recién nacido en una sesión newborn del estudio', slug: 'newborn' },
-    familiar: { title: 'Familiar', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', duration: '2 horas', photos: '6 fotos digitales', price: 'desde US$70', photo: 'sel-familiar.jpg', alt: 'Retrato familiar en el estudio', slug: 'familiar' },
-    parejas: { title: 'Parejas', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', duration: '2 horas', photos: '6 fotos digitales', price: 'desde US$70', photo: 'sel-parejas.jpg', alt: 'Sesión de pareja en el estudio', slug: 'parejas' },
-    quince: { title: 'Quince años', description: 'Estudio, iglesia, exteriores o la cobertura de tu recepción.', duration: '2 a 3 horas', photos: '6 a 100 fotos digitales', price: 'desde US$70', photo: 'sel-quince.jpg', alt: 'Retrato de quince años en el estudio', slug: 'quince-anos' },
+    embarazo: { title: 'Embarazo', description: 'Entre la semana 28 y la 32 de embarazo, con vestidos, telas y coronas del estudio.', duration: '2 a 3 horas', photos: '6 a 20 fotos digitales', price: 'desde US$80', photo: 'sel-embarazo.jpg', alt: 'Mujer embarazada con sombrero negro sentada sobre un cubo blanco', slug: 'embarazo' },
+    newborn: { title: 'Newborn', description: 'Entre el día 8 y el 12 de nacido, con fondos y escenografía del estudio.', duration: '2 a 3 horas', photos: '6 fotos digitales', price: 'desde US$80', photo: 'sel-newborn.jpg', alt: 'Recién nacido en una sesión newborn del estudio', slug: 'newborn' },
+    familiar: { title: 'Familiar', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', duration: '2 horas', photos: '6 fotos digitales', price: 'US$80', photo: 'sel-familiar.jpg', alt: 'Retrato familiar en el estudio', slug: 'familiar' },
+    parejas: { title: 'Parejas', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', duration: '2 horas', photos: '6 fotos digitales', price: 'US$80', photo: 'sel-parejas.jpg', alt: 'Sesión de pareja en el estudio', slug: 'parejas' },
+    quince: { title: 'Quince años', description: 'Estudio, iglesia, exteriores o la cobertura de tu recepción.', duration: '2 a 3 horas', photos: '6 a 100 fotos digitales', price: 'desde US$80', photo: 'sel-quince.jpg', alt: 'Retrato de quince años en el estudio', slug: 'quince-anos' },
     cumpleanos: { title: 'Cumpleaños', description: 'Cumpleaños infantiles y de adultos, quince años, revelación de sexo y recepciones.', duration: '2 a 3 horas', photos: '6 a 100 fotos digitales', price: 'desde US$70', photo: 'sel-cumple.jpg', alt: 'Sesión de cumpleaños con decoración temática', slug: 'cumpleanos-infantiles' },
   };
 

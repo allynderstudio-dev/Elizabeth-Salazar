@@ -54,7 +54,7 @@ test('errores HTTP sin filtrar detalles internos', async (t) => {
 
   let res = await post(srv.base, request({ precio: 1 }));
   assert.equal(res.status, 409);
-  assert.deepEqual(await res.json(), { error: 'price_changed', precio: 70, abono: 35 });
+  assert.deepEqual(await res.json(), { error: 'price_changed', precio: 80, abono: 40 });
 
   res = await fetch(`${srv.base}/api/availability?servicio=newborn&paquete=sesion-newborn&mes=2026-11`);
   assert.deepEqual(await res.json(), { reservable: false });

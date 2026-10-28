@@ -22,10 +22,10 @@ function setup({ now = NOW, events = EVENTS, pageSize } = {}) {
   return { fake, cal, service, advance: (ms) => { clock += ms; }, now: () => clock };
 }
 
-// Solicitud válida para Embarazo · Estudio (US$70, abono US$35)
+// Solicitud válida para Embarazo · Estudio (US$80, abono US$40)
 const request = (over = {}) => ({
   referencia: 'ref-0000000000000001',
-  servicio: 'embarazo', paquete: 'estudio', precio: 70, abono: 35,
+  servicio: 'embarazo', paquete: 'estudio', precio: 80, abono: 40,
   fecha: '2026-11-04', hora: '08:00', zonaHoraria: 'America/Caracas',
   nombre: 'María Pérez', whatsapp: '+584121234567',
   detalles: { 'Semanas de embarazo': 30, Vestuario: 'Ambos' },

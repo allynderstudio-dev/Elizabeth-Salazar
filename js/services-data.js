@@ -6,7 +6,7 @@
 
   // Textos comunes a todas las páginas de servicio
   const COMMON = {
-    pricingNote: 'Precios en US$. En pesos colombianos, según la tasa del día. Reservas con el 50% de abono.',
+    pricingNote: 'Precios en dólares estadounidenses. Los pagos en pesos colombianos se calculan según la tasa del día. Para reservar, se requiere un abono del 50%.',
     schedule: 'Lunes a sábado: 8:00 a. m., 10:00 a. m., 2:00 p. m. y 4:00 p. m. (hora de Venezuela).',
     depositHero: 'Abono del 50% para reservar',
     depositHeroShort: 'Abono del 50%', // versión mobile
@@ -40,23 +40,27 @@
   };
 
   // Abono = 50% del precio (coincide con todas las tarjetas de Figma)
+  // «Costos adicionales» siempre termina con la foto digital adicional (Package Card 221:2259)
   const pkg = (slug, name, price, data) => ({
     slug,
     name,
+    amount: price,
     price: `US$${price}`,
     deposit: `Abono para reservar: US$${price / 2} (50%)`,
     includes: [],
     excludes: [], // «No incluye» (icono menos)
-    extras: [], // «Costos adicionales» (icono info, como en las instancias de Figma)
     notes: [], // «A tener en cuenta» (icono info)
     ...data,
+    extras: [...(data.extras || []), EXTRA_PHOTOS], // «Costos adicionales» (icono info, como en las instancias de Figma)
   });
 
   const photo = (slug, file, alt, pos) => ({ src: `${IMG}/${slug}/${file}`, alt, pos: pos || '50% 50%' });
 
   const DELIVERY = 'Fotos digitales editadas, entregadas con el logo de Ely Salazar';
   const DELIVERY_TIME = 'Entrega digital en 8 días hábiles';
-  const EXTRA_PHOTOS = 'Fotos adicionales: US$4 cada una';
+  const EXTRA_PHOTOS = 'Fotografía digital adicional: US$4 c/u.';
+  const MAKEUP = 'Maquillaje y peinado (opcional, con solicitud previa): US$50';
+  const EXTRA_BABY = 'Bebé adicional: US$20 cada uno';
   const ON_TIME = 'Llega puntual: tienes 15 minutos de tolerancia.';
   const DEPOSIT_CONFIRM = 'Tu fecha se confirma con el abono del 50%.';
   const TRANSFER = 'Traslado: US$30, si aplica';
@@ -73,7 +77,6 @@
         script: 'Embarazo',
         headline: 'La promesa de una nueva vida.',
         body: 'Retratos de tu embarazo entre la semana 28 y la 32: en el estudio, en Bathroom o en exteriores.',
-        price: 'desde US$70',
         photo: photo('embarazo', 'hero.jpg', 'Mujer embarazada recostada de lado sobre telas color malva, vista desde arriba'),
       },
       experience: {
@@ -113,32 +116,57 @@
       packages: {
         layout: 'cols-3',
         items: [
-          pkg('estudio', 'Estudio', 70, {
+          pkg('estudio', 'Estudio', 80, {
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
             includes: ['2 cambios de vestuario', STUDIO_SETS],
+            extras: [MAKEUP],
           }),
-          pkg('bathroom', 'Bathroom', 90, {
+          pkg('bathroom', 'Bathroom', 100, {
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
             includes: ['Bañera, set y accesorios del estudio'],
+            extras: [MAKEUP],
           }),
-          pkg('exteriores', 'Exteriores', 140, {
+          pkg('exteriores', 'Exteriores', 180, {
             meta: meta('2 a 3 horas', '20 fotos digitales', 'Exteriores'),
             includes: ['Vestidos del estudio, si los pides con anticipación'],
-            extras: [TRANSFER],
+            extras: [TRANSFER, MAKEUP],
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, 'Vestidos, telas, coronas, flores y alas del estudio', EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME, 'Vestidos, telas, coronas, flores y alas del estudio'],
+      // «06 Vestuario y accesorios» (215:9100 / 215:9220), después de los paquetes.
+      // Las fotos de vestidos y accesorios están pendientes: se muestra solo el texto (BC-5).
+      wardrobe: [
+        {
+          eyebrow: 'Vestuario',
+          title: 'Vestidos disponibles',
+          badge: 'Sin costo adicional',
+          body: 'Contamos con una selección de vestidos que puedes utilizar durante tu sesión sin costo adicional. Te recomendamos consultar los modelos disponibles y coordinar tu elección con anticipación.',
+          note: 'Los vestidos están sujetos a disponibilidad.',
+        },
+        {
+          eyebrow: 'Detalles',
+          title: 'Accesorios para tu sesión',
+          badge: 'Sin costo adicional',
+          body: 'Disponemos de telas, coronas, flores artificiales y otros accesorios que puedes incorporar a tus fotografías sin costo adicional, según disponibilidad.',
+          note: 'Podemos orientarte para elegir las opciones que mejor se adapten al resultado que deseas.',
+        },
+      ],
+      // «Recomendaciones para tu sesión» (215:9174) reemplaza «Antes de tu sesión» solo en Embarazo
+      preparationTitle: 'Recomendaciones para tu sesión',
       preparation: [
-        'Agenda tu sesión entre la semana 28 y la 32.',
-        'El día de la sesión no apliques aceites ni cremas.',
-        'Trae tus outfits; si quieres usar vestidos del estudio, elígelos con anticipación.',
-        'Llega con el cabello y el maquillaje listos.',
-        'Si participa tu pareja, combinen los colores de su ropa.',
+        { label: 'Momento ideal', text: 'Te recomendamos realizar tu sesión de embarazo entre las semanas 28 y 32 de gestación.' },
+        { label: 'Preparación de la piel', text: 'El día de la sesión, evita aplicar aceites o cremas corporales.' },
+        { label: 'Vestuario', text: 'Puedes traer tus propias prendas o elegir, sin costo adicional, entre los vestidos disponibles en el estudio. Te recomendamos coordinar tu selección con anticipación.' },
+        { label: 'Ropa interior', text: 'Te recomendamos llevar ropa interior adecuada a los cambios de vestuario. Si deseas fotografías con prendas más ligeras, podemos orientarte sobre las opciones más apropiadas.' },
+        { label: 'Calzado y uñas', text: 'Procura llevar las uñas arregladas y seleccionar calzado que complemente el estilo de tus fotografías.' },
+        { label: 'Maquillaje y peinado — US$50', badge: 'Costo adicional', text: 'Puedes complementar tu sesión con nuestro servicio de maquillaje y peinado, disponible en el estudio por US$50 adicionales. Es necesario solicitarlo con anticipación.' },
+        { label: 'Fotografías en pareja', text: 'Si tu pareja participará en la sesión, recomendamos coordinar los colores y estilos de la vestimenta para lograr una composición armoniosa.' },
+        { label: 'Sesiones en exteriores', text: 'Si deseas utilizar vestidos del estudio durante una sesión en exteriores, es importante coordinar su disponibilidad con anticipación.' },
       ],
       faq: [
         { q: '¿En qué semana debo hacer mi sesión?', a: 'Entre la semana 28 y la 32 de embarazo.' },
-        { q: '¿Puedo usar vestidos del estudio?', a: 'Sí. Elige con anticipación vestidos, telas y coronas del estudio; para exteriores, debes pedirlos antes.' },
+        { q: '¿Puedo usar vestidos del estudio?', a: 'Sí, sin costo adicional. Elige con anticipación vestidos, telas y coronas del estudio; para exteriores, debes pedirlos antes.' },
         { q: '¿Hay un costo adicional en exteriores?', a: 'Puede aplicar un recargo de US$30 por traslado, según la locación.' },
       ],
     },
@@ -153,13 +181,12 @@
         script: 'Newborn',
         headline: 'La ternura de los primeros días.',
         body: 'Sesiones para recién nacidos en el estudio, con fondos y escenografía. El posado clásico se realiza entre el día 8 y el 12 de nacido.',
-        price: 'desde US$70',
         photo: photo('newborn', 'hero.jpg', 'Bebé recién nacido dormido en una canasta de mimbre decorada con rosas'),
       },
       experience: {
         title: 'Cada gesto, cada suspiro y cada mirada.',
-        body: 'La fotografía Newborn captura la ternura de los primeros días: cada gesto, cada suspiro y cada mirada. El precio base aplica a bebés de hasta 3 meses; desde el cuarto mes aumenta US$10.',
-        forWho: 'Bebés recién nacidos. El posado clásico Newborn es para bebés entre el día 8 y el 12 de nacido.',
+        body: 'La fotografía Newborn captura la ternura de los primeros días: cada gesto, cada suspiro y cada mirada. Las sesiones Newborn son para bebés de hasta 3 meses; a partir del cuarto mes, te recomendamos la sesión Mes a Mes.',
+        forWho: 'Bebés de hasta 3 meses. El posado clásico Newborn es para bebés entre el día 8 y el 12 de nacido.',
         expect: 'Una sesión de 2 a 3 horas en el estudio. Una persona puede acompañarte para ayudar.',
       },
       story: {
@@ -186,19 +213,19 @@
       packages: {
         layout: 'cols-2',
         items: [
-          pkg('sesion-newborn', 'Sesión Newborn', 70, {
+          pkg('sesion-newborn', 'Sesión Newborn', 80, {
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
             includes: [STUDIO_SETS],
-            extras: ['A partir del cuarto mes del bebé: US$10 adicionales'],
+            extras: [EXTRA_BABY],
           }),
-          pkg('sesion-retrato', 'Sesión + Retrato', 120, {
+          pkg('sesion-retrato', 'Sesión + Retrato', 140, {
             meta: meta('2 a 3 horas', '6 fotos digitales', 'Estudio'),
             includes: ['Cuadro de 30×40 cm con moldes 3D de mano y pie', STUDIO_SETS],
-            extras: ['A partir del cuarto mes del bebé: US$10 adicionales'],
+            extras: [EXTRA_BABY],
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, STUDIO_SETS, EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME, STUDIO_SETS],
       preparation: [
         'El posado clásico se realiza entre el día 8 y el 12 de nacido.',
         'Si tu bebé tiene más de 15 días, indícalo al reservar.',
@@ -207,7 +234,7 @@
       ],
       faq: [
         { q: '¿Cuándo es el mejor momento para la sesión?', a: 'El posado clásico Newborn se realiza entre el día 8 y el 12 de nacido.' },
-        { q: '¿Cambia el precio según la edad?', a: 'El precio base aplica hasta los 3 meses. A partir del cuarto mes, aumenta US$10.' },
+        { q: '¿Hasta qué edad es la sesión Newborn?', a: 'Hasta los 3 meses. A partir del cuarto mes, te recomendamos la sesión Mes a Mes.' },
         { q: '¿Y si mi bebé tiene más de 15 días?', a: 'Indícalo al reservar para preparar una sesión adecuada a su edad.' },
       ],
     },
@@ -222,13 +249,12 @@
         script: 'Mes a Mes',
         headline: 'Un instante único, un recuerdo eterno.',
         body: 'Sesiones para acompañar a tu bebé mes a mes, con escenografía y vestuario temático del estudio.',
-        price: 'desde US$50',
         photo: photo('mes-a-mes', 'hero.jpg', 'Bebé sonriente con un gran lazo blanco en la cabeza recostada en un sillón'),
       },
       experience: {
         title: 'Cada mes trae algo nuevo.',
         body: 'La fotografía es mucho más que una imagen: es un instante único que se convierte en un recuerdo eterno. Si eliges una sesión temática, la escenografía y el vestuario temático del estudio no tienen costo adicional.',
-        forWho: 'Bebés en sus primeros meses. Bathroom es desde los 7 meses, cuando tu bebé ya se sienta sin apoyo.',
+        forWho: 'Bebés a partir del cuarto mes. Bathroom es desde los 7 meses, cuando tu bebé ya se sienta sin apoyo.',
         expect: 'Una sesión de 2 horas en el estudio y 6 fotos digitales editadas.',
       },
       story: {
@@ -255,18 +281,18 @@
       packages: {
         layout: 'cols-2',
         items: [
-          pkg('sesion-mes-a-mes', 'Sesión Mes a Mes', 50, {
+          pkg('sesion-mes-a-mes', 'Sesión Mes a Mes', 70, {
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
             includes: [STUDIO_SETS, 'Temática con vestuario del estudio, sin costo adicional'],
           }),
-          pkg('bathroom', 'Bathroom', 60, {
+          pkg('bathroom', 'Bathroom', 80, {
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
             includes: ['Bañera y set del estudio', 'Leche, espuma, frutas, flores o cereal'],
             notes: ['Desde los 7 meses, cuando tu bebé se sienta sin apoyo'],
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, 'Escenografía y vestuario temático del estudio', EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME, 'Escenografía y vestuario temático del estudio'],
       preparation: [
         'Bathroom es desde los 7 meses y cuando tu bebé ya se sienta sin apoyo.',
         ON_TIME,
@@ -285,17 +311,16 @@
       category: 'cumpleanos-y-celebraciones',
       galleryCategory: 'cumpleanos',
       hero: {
-        eyebrow: 'De 2 a 6 años',
+        eyebrow: 'De 2 a 14 años',
         script: 'Cumpleaños',
         headline: 'Un universo de risas y colores.',
-        body: 'Sesiones de cumpleaños para niñas y niños de 2 a 6 años: en el estudio, con cake smash, con temática o en exteriores.',
-        price: 'desde US$70',
+        body: 'Sesiones de cumpleaños para niñas y niños de 2 a 14 años: en el estudio, con cake smash, con temática o en exteriores.',
         photo: photo('cumpleanos-infantiles', 'hero.jpg', 'Niña con vestido rosado sentada en el piso entre globos rosados y en forma de corazón'),
       },
       experience: {
         title: 'La magia de la infancia en cada foto.',
         body: 'Cada cumpleaños es un universo de risas y colores, y la fotografía revive la magia de la infancia. Trae los atuendos que más te gusten para su sesión y pregunta por los fondos y accesorios del estudio.',
-        forWho: 'Niñas y niños de 2 a 6 años y su celebración.',
+        forWho: 'Niñas y niños de 2 a 14 años y su celebración.',
         expect: 'Sesiones de 2 a 3 horas, con 6 a 20 fotos digitales editadas según el paquete.',
       },
       story: {
@@ -323,12 +348,12 @@
       packages: {
         layout: 'cols-2',
         items: [
-          pkg('estudio', 'Estudio', 70, {
+          pkg('estudio', 'Estudio', 80, {
             meta: meta('2 a 3 horas', '6 fotos digitales', 'Estudio'),
             includes: ['Sets del estudio'],
             excludes: ['Temática ni globos'],
           }),
-          pkg('cake-smash', 'Cake Smash', 120, {
+          pkg('cake-smash', 'Cake Smash', 130, {
             meta: meta('2 horas', '15 fotos digitales', 'Estudio'),
             includes: ['Torta decorada: ¼ de torta de vainilla con crema chantilly'],
             excludes: ['Globos ni confeti'],
@@ -338,14 +363,14 @@
             includes: ['Torta y escenario temático a tu elección, con globos y decoración'],
             excludes: ['Temáticas de personajes'],
           }),
-          pkg('exteriores', 'Exteriores', 200, {
+          pkg('exteriores', 'Exteriores', 280, {
             meta: meta('2 horas', '20 fotos digitales', 'Exteriores'),
             excludes: ['Torta ni decoración'],
             extras: [TRANSFER],
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, 'Fondos y accesorios del estudio', EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME, 'Fondos y accesorios del estudio'],
       preparation: [
         'Trae los atuendos que quieras usar.',
         'Pide tu temática con 2 semanas de anticipación.',
@@ -370,7 +395,6 @@
         script: 'Cumpleaños',
         headline: 'Celebra un año más de ti.',
         body: 'Una sesión de cumpleaños en el estudio, con fondos y escenografía, o en exteriores.',
-        price: 'desde US$70',
         photo: photo('cumpleanos-adultos', 'hero.jpg', 'Mujer rubia de labios rojos posando entre telas rojas'),
       },
       experience: {
@@ -407,14 +431,14 @@
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
             includes: [STUDIO_SETS],
           }),
-          pkg('exteriores', 'Exteriores', 120, {
+          pkg('exteriores', 'Exteriores', 180, {
             meta: meta('2 horas', '20 fotos digitales', 'Exteriores'),
             excludes: ['Set ni decoración'],
             extras: [TRANSFER],
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, STUDIO_SETS, EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME, STUDIO_SETS],
       preparation: [
         'Trae tu outfit, tus accesorios y tus globos.',
         'Pregunta qué fondos del estudio combinan con tu temática.',
@@ -438,7 +462,6 @@
         script: 'Quince años',
         headline: 'Sueños que comienzan a florecer.',
         body: 'Sesiones de quince años en el estudio, en la iglesia o en exteriores, y la cobertura de tu recepción.',
-        price: 'desde US$70',
         photo: photo('quince-anos', 'hero.jpg', 'Quinceañera de cabello largo con vestido de plumas rosadas sobre fondo negro'),
       },
       experience: {
@@ -472,25 +495,25 @@
       packages: {
         layout: 'masonry',
         items: [
-          pkg('estudio', 'Estudio', 70, {
+          pkg('estudio', 'Estudio', 80, {
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
             includes: [STUDIO_SETS],
           }),
-          pkg('iglesia', 'Iglesia', 120, {
+          pkg('iglesia', 'Iglesia', 130, {
             meta: meta('2 horas', '20 fotos digitales', 'Iglesia'),
           }),
-          pkg('exteriores', 'Exteriores', 200, {
+          pkg('exteriores', 'Exteriores', 280, {
             meta: meta('2 a 3 horas', '20 fotos digitales', 'Exteriores'),
             extras: [TRANSFER],
             notes: ['Recomendamos 2 o 3 cambios de vestuario'],
           }),
-          pkg('recepcion', 'Recepción', 380, {
+          pkg('recepcion', 'Recepción', 400, {
             meta: meta('Unas 3 horas', '100 fotos digitales', 'Lugar del evento', '20 fotos impresas'),
             includes: ['Cobertura de tu celebración'],
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME],
       preparation: [
         'Para la sesión en exteriores, trae 2 o 3 cambios de vestuario.',
         ON_TIME,
@@ -513,14 +536,13 @@
         script: 'Revelación',
         headline: 'El siguiente capítulo de tu historia.',
         body: 'Descubre quién será el nuevo integrante de la familia en una sesión en el estudio o en exteriores.',
-        price: 'desde US$150',
         photo: photo('revelacion-de-sexo', 'hero.jpg', 'Pareja con su hija en brazos frente a una decoración de globos azules y rosados con osos de peluche'),
       },
       experience: {
         title: 'Un momento para descubrir juntos.',
         body: 'Es hora de conocer el siguiente capítulo de tu historia y descubrir quién será el nuevo integrante de la familia. Elige cómo hacer la revelación: pintura, pastel, confeti, globo, paraguas o humo.',
         forWho: 'Futuros papás y sus familias.',
-        expect: 'Una sesión de 2 horas y 20 fotos digitales editadas.',
+        expect: 'Una sesión de 2 horas, con 15 o 20 fotos digitales editadas según el paquete.',
       },
       story: {
         type: 'chapters',
@@ -547,10 +569,10 @@
         layout: 'cols-2',
         items: [
           pkg('estudio', 'Estudio', 150, {
-            meta: meta('2 horas', '20 fotos digitales', 'Estudio'),
+            meta: meta('2 horas', '15 fotos digitales', 'Estudio'),
             includes: ['Decoración', 'Revelación con pintura, pastel, confeti, globo, paraguas o humo'],
           }),
-          pkg('exteriores', 'Exteriores', 200, {
+          pkg('exteriores', 'Exteriores', 280, {
             meta: meta('2 horas', '20 fotos digitales', 'Exteriores'),
             extras: [TRANSFER],
           }),
@@ -560,8 +582,8 @@
       preparation: [ON_TIME, DEPOSIT_CONFIRM, 'Indicaciones específicas por confirmar con Ely.'],
       faq: [
         { q: '¿Cómo se hace la revelación?', a: 'Puedes elegir pintura, pastel, confeti, globo, paraguas o humo.' },
-        { q: '¿Qué incluye la sesión en estudio?', a: 'Decoración, 2 horas de sesión y 20 fotos digitales editadas.' },
-        { q: '¿Puedo hacerla en exteriores?', a: 'Sí, por US$200. Puede aplicar un recargo de US$30 por traslado.' },
+        { q: '¿Qué incluye la sesión en estudio?', a: 'Decoración, 2 horas de sesión y 15 fotos digitales editadas.' },
+        { q: '¿Puedo hacerla en exteriores?', a: 'Sí, por US$280. Puede aplicar un recargo de US$30 por traslado.' },
       ],
     },
 
@@ -575,7 +597,6 @@
         script: 'Recepciones',
         headline: 'Cobertura para tu celebración.',
         body: 'Unas 3 horas de cobertura de tu fiesta, con 100 fotos digitales y 20 fotos impresas.',
-        price: 'US$380',
         photo: photo('recepciones', 'hero.jpg', 'Quinceañera con vestido corto dorado junto a una torta blanca con lazos rosados y globos'),
       },
       experience: {
@@ -632,7 +653,6 @@
         script: 'Familiar',
         headline: 'Juntos, como son.',
         body: 'Retratos de familia en el estudio, con fondos y escenografía. Tu mascota también puede salir en las fotos con fondo blanco.',
-        price: 'US$70',
         photo: photo('familiar', 'hero.jpg', 'Familia de cuatro abrazada en un retrato sobre fondo negro'),
       },
       experience: {
@@ -666,14 +686,14 @@
         layout: 'single',
         photo: photo('familiar', 'story-1.jpg', 'Familia numerosa vestida de blanco sentada en el piso del estudio'),
         items: [
-          pkg('sesion-familiar', 'Sesión familiar', 70, {
+          pkg('sesion-familiar', 'Sesión familiar', 80, {
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
             includes: [STUDIO_SETS, 'Mascotas en fotos con fondo blanco'],
             notes: ['Número de personas por confirmar al reservar'],
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, STUDIO_SETS, EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME, STUDIO_SETS],
       preparation: [
         'Si incluyes a otros familiares, los adultos deben ayudarnos con el orden y el silencio durante la sesión.',
         'Las mascotas pueden participar en fotos con fondo blanco, sin escenarios.',
@@ -697,7 +717,6 @@
         script: 'Parejas',
         headline: 'Los recuerdos importan tanto como los años juntos.',
         body: 'Una sesión para los dos en el estudio: 2 horas y 6 fotos digitales editadas.',
-        price: 'US$70',
         photo: photo('parejas', 'hero.jpg', 'Hombre cargando en brazos a su pareja, ambos con camisa blanca y jeans'),
       },
       experience: {
@@ -720,12 +739,12 @@
         layout: 'single',
         photo: photo('parejas', 'story-1.jpg', 'Pareja de camisas blancas abrazada, frente con frente, sobre fondo claro', '50% 35%'),
         items: [
-          pkg('sesion-de-pareja', 'Sesión de pareja', 70, {
+          pkg('sesion-de-pareja', 'Sesión de pareja', 80, {
             meta: meta('2 horas', '6 fotos digitales', 'Estudio'),
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME],
       preparation: [ON_TIME, DEPOSIT_CONFIRM, 'Indicaciones específicas por confirmar con Ely.'],
       faq: [
         { q: '¿Qué incluye la sesión?', a: '2 horas de sesión y 6 fotos digitales editadas.' },
@@ -745,7 +764,6 @@
         script: 'Profesional',
         headline: 'La mejor inversión para tu marca.',
         body: 'Fotografía profesional y comercial para tus productos, tus servicios o tu trabajo.',
-        price: 'US$80',
         photo: photo('fotografia-profesional-y-comercial', 'hero.jpg', 'Mujer recostada entre flores fucsia con maquillaje rosado y productos de belleza'),
       },
       experience: {
@@ -775,7 +793,7 @@
           }),
         ],
       },
-      included: [DELIVERY, DELIVERY_TIME, EXTRA_PHOTOS],
+      included: [DELIVERY, DELIVERY_TIME],
       preparation: [
         'Trae tu vestuario.',
         'Trae los productos o elementos de trabajo que quieras fotografiar.',
@@ -793,6 +811,9 @@
   // Campos derivados de los anteriores (sin texto nuevo)
   Object.entries(SERVICES).forEach(([slug, s]) => {
     s.slug = slug;
+    // «desde US$…» con el paquete más barato; sin «desde» si hay un solo paquete
+    const items = s.packages.items;
+    s.hero.price = `${items.length > 1 ? 'desde ' : ''}US$${Math.min(...items.map((p) => p.amount))}`;
     s.ctaPriceLine = `${s.hero.price} · Abono del 50% para confirmar.`;
     s.galleryDesktop = `Ver más fotos de ${s.galleryLabel || s.name} en la galería`;
     // Título de pestaña y descripción (derivado: nombre + cuerpo del hero)

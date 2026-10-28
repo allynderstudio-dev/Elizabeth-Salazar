@@ -2,7 +2,7 @@
 // Cal.com es la única fuente de verdad: no hay base de datos. Los datos propios de cada
 // solicitud (referencia, precio, abono, vencimiento) viajan en el metadata de la reserva.
 const { CalApiError } = require('./cal-client.js');
-const { BOOKING_CONFIG, CAL_EVENTS, findPackage, eventFor, depositFor } = require('./catalog.js');
+const { BOOKING_DATA, BOOKING_CONFIG, CAL_EVENTS, findPackage, eventFor, depositFor } = require('./catalog.js');
 const T = require('./time.js');
 
 const HOUR = 36e5;
@@ -106,8 +106,16 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
     const startUtc = T.localToUtc(date, time, tz);
     if (!config.workingDays.includes(T.utcToLocal(startUtc.toISOString(), tz).weekday)) fail('fecha', 'Día sin sesiones');
 
+    // Cantidad de bebés: solo en servicios con regla de bebés (Newborn), y cambia el precio
+    const rule = service.babies;
+    if (rule) {
+      const n = body.bebes;
+      if (!Number.isInteger(n) || n < rule.min || n > rule.max) fail('bebes', 'Cantidad de bebés inválida');
+    }
+    const quote = BOOKING_DATA.quote(service, pkg, rule ? body.bebes : undefined);
+
     // El precio y el abono los fija el servidor; si el navegador muestra otros, se avisa.
-    const price = pkg.price;
+    const price = quote.total;
     const deposit = depositFor(price);
     if (Number(body.precio) !== price || Number(body.abono) !== deposit) {
       throw new BookingError('price_changed', 'El precio cambió', { precio: price, abono: deposit });
@@ -122,16 +130,20 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
       if (k.length > 60 || String(v).length > 500) fail('detalles', 'Detalle demasiado largo');
     });
 
-    return { service, pkg, event, ref, name, phone, date, time, startUtc, price, deposit, details: entries };
+    return { service, pkg, event, ref, name, phone, date, time, startUtc, quote, price, deposit, details: entries };
   }
 
   const detailText = (entries) => entries.map(([k, v]) => `${k}: ${String(v).trim()}`).join(' · ').slice(0, 500);
   const serviceLabel = (v) => `${v.service.name} · ${v.pkg.name}`;
   const money = (n) => `US$${n}`;
+  // "Bebés: 2 (paquete US$80 + bebé adicional US$20)"
+  const babiesText = (q) =>
+    `Bebés: ${q.babies} (paquete ${money(q.base)} + ${q.extra === 1 ? 'bebé adicional' : `${q.extra} bebés adicionales`} ${money(q.surcharge)})`;
 
   // Resumen legible para Ely en la reserva y en Google Calendar
   function notesText(v) {
     const lines = [`${serviceLabel(v)} — ${money(v.price)} (abono del 50%: ${money(v.deposit)})`];
+    if (v.quote.surcharge) lines.push(babiesText(v.quote));
     v.details.forEach(([k, val]) => lines.push(`${k}: ${String(val).trim()}`));
     lines.push(`WhatsApp: ${v.phone}`, 'Solicitud enviada desde la página web.');
     return lines.join('\n').slice(0, 1500);
@@ -159,6 +171,7 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
         paquete: v.pkg.slug,
         precioUSD: String(v.price),
         abonoUSD: String(v.deposit),
+        ...(v.quote.babies ? { bebes: String(v.quote.babies), recargoUSD: String(v.quote.surcharge) } : {}),
         whatsapp: v.phone,
         creadaEn: new Date(now()).toISOString(),
         venceEn: new Date(now() + EXPIRY_HOURS * HOUR).toISOString(),
