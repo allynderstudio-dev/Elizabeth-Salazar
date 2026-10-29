@@ -78,7 +78,7 @@ python3 tools/check-links.py
 
 - **Contenido de sesiones:** está en `js/services-data.js`. El de temporadas, en `js/temporadas-data.js` (incluido el estado de cada una: `proximamente` o `abiertas`).
 - **Catálogo y precios del flujo de reserva:** están en `js/booking-data.js`. Los precios de las páginas de servicio están en `js/services-data.js` (el «desde» del hero se calcula con el paquete más barato); si cambias un precio, cámbialo en los dos archivos y en las tarjetas de `index.html`, `js/home.js` y `servicios.html`.
-- **Newborn:** el precio incluye un bebé y cada bebé adicional suma US$20 (`quote` en `js/booking-data.js`, que usan el navegador y el servidor; máximo 3 hasta que Ely confirme otro). La sesión es para bebés de hasta 3 meses **el día de la sesión**: desde nacimiento + 4 meses de calendario, el paso 4 se bloquea y ofrece Mes a Mes. Esta regla de edad solo se valida en el navegador.
+- **Newborn:** el precio incluye un bebé y cada bebé adicional suma US$20 (`quote` en `js/booking-data.js`, que usan el navegador y el servidor; máximo 3 hasta que Ely confirme otro). La sesión es para bebés de hasta 3 meses **el día de la sesión**: desde nacimiento + 4 meses de calendario, el paso 4 se bloquea y ofrece Mes a Mes. Con el bebé sin nacer no se puede reservar. El navegador y el servidor aplican la misma regla.
 
 ## Despliegue
 
@@ -112,101 +112,133 @@ Además se verificó en todas las páginas:
 
 ```text
 Navegador ──► /api (Vercel Functions, este repo) ──► Cal.com API v2 ──► Google Calendar
+                    │
+                    └── Redis (Upstash): bloqueo por fecha + límite de envíos
 ```
 
-Cal.com es la **única fuente de verdad**: no hay base de datos. Los datos propios de cada solicitud (referencia, servicio, paquete, precio, abono, WhatsApp, vencimiento, detalles) se guardan en el `metadata` de la reserva de Cal.com. Google Calendar lo sincroniza Cal.com; el backend no escribe en Google.
+Cal.com es la **única fuente de verdad** de las reservas: no hay base de datos. Los datos propios de cada solicitud (referencia, servicio, paquete, precio, abono, WhatsApp, fecha de creación, detalles) viajan en el `metadata` de la reserva. Google Calendar lo sincroniza Cal.com; el sitio nunca escribe en Google. Redis solo guarda bloqueos de segundos y contadores; ninguna reserva.
 
-### Qué hace
+### Reglas de negocio (confirmadas el 28/10/2026)
 
-- **Disponibilidad real** (`GET /api/availability`): consulta `/v2/slots` del evento del paquete. Solo muestra los horarios que Cal.com devuelve libres, convertidos a hora de Caracas desde el instante UTC. Si Cal.com falla, el sitio no ofrece ningún día y muestra "Reintentar".
-- **Solicitud pendiente** (`POST /api/bookings`): valida datos, precio y abono del 50 % en el servidor (en Newborn, con los bebés adicionales: el cuerpo trae `bebes` y la reserva guarda `bebes` y `recargoUSD` en el metadata). Vuelve a comprobar que el horario siga libre, crea la reserva (pendiente de aprobación) **sin correo** y relee el `uid` en Cal.com para verificarlo. Solo entonces el sitio muestra "Recibimos tu solicitud" y el enlace a WhatsApp con la referencia.
-- **Sin duplicados**: el navegador genera una referencia por solicitud y la reutiliza en los reintentos. Cal.com no documenta idempotencia, así que antes de crear (y después de un conflicto o de una respuesta perdida) el servidor busca en Cal.com una reserva con esa referencia. El doble clic se bloquea en el navegador y en el servidor. Entre instancias distintas, el bloqueo del horario por la reserva pendiente impide la segunda creación.
-- **Paquetes sin evento**: siguen en modo WhatsApp ("horario preferido", "Preparar solicitud por WhatsApp", "Pendiente de envío") y no se registra nada.
-- **Abono**: se coordina por WhatsApp o en persona. Cuando Ely recibe el abono, **confirma la reserva en Cal.com**. Ese es el registro del pago; no hay panel aparte.
+1. El cliente elige servicio, paquete, fecha y hora, y envía la solicitud. Elegir un horario no lo aparta.
+2. El servidor comprueba el horario sin carreras entre instancias y crea una reserva **pendiente** en Cal.com. Desde ese momento el bloque de 2 h queda ocupado para **todos** los servicios.
+3. Se le pide al cliente el abono del 50 % **dentro de las 24 horas** y lo coordina con Ely por WhatsApp.
+4. Unas 24 horas después, **Ely recibe un recordatorio** para revisarla. El recordatorio no cambia nada.
+5. Ely verifica el pago y **confirma, rechaza o cancela en Cal.com**. Hasta entonces la solicitud sigue pendiente y el horario sigue apartado, **pase el tiempo que pase**.
 
-Estados: el de la reserva lo lleva Cal.com (`pending` → `accepted` / `rejected` / `cancelled`). El del abono no se guarda por separado: confirmar en Cal.com equivale a "abono recibido".
+- **Nada vence ni se cancela solo.** Las 24 horas son una indicación al cliente más el recordatorio a Ely. Ely libera ella misma las solicitudes abandonadas, rechazándolas o cancelándolas en Cal.com. Si el cliente reportó el pago y Ely aún no lo verificó, puede dejarla pendiente el tiempo que necesite.
+- **Solo Ely confirma.** Abrir o enviar WhatsApp no cambia ningún estado. El sitio nunca muestra "Confirmada" ni dice que se recibió un pago.
+- **Estados para el cliente:** solo "Pendiente de abono" (y "Pendiente de envío" en el modo WhatsApp). No existen "Vencida" ni "Pendiente de confirmación".
+- **Bloques fijos de 2 h:** lunes a sábado, 08:00, 10:00, 14:00 y 16:00 (hora de Caracas), de mañana a 6 meses. Todos los paquetes, incluidas las recepciones de unas 3 h, bloquean 120 min. Si una sesión se alarga, Ely bloquea el tiempo extra a mano (ver "Procedimiento de Ely").
+- **Newborn solo después del nacimiento:** con "¿Tu bebé ya nació?" = No no se puede reservar (ni precio ni abono). Con "Sí", el bebé debe tener menos de 4 meses de calendario **el día de la sesión** (31/10 + 4 meses = 28/02). El navegador y el servidor aplican la misma regla (`newbornEligibility` en `js/booking-data.js`). Cada bebé adicional suma US$20 (máximo 3 bebés hasta que Ely confirme otro).
+
+### Cómo funciona
+
+- **Disponibilidad** (`GET /api/availability`): consulta `/v2/slots` en cada petición (sin caché, `no-store`). Solo ofrece lo que Cal.com devuelve libre, convertido a hora de Caracas. Si Cal.com falla, no ofrece ningún día y muestra "Reintentar". El navegador vuelve a pedir el mes cada vez que se entra al paso 3.
+- **Solicitud** (`POST /api/bookings`): valida datos, precio, abono y, en Newborn, nacimiento y edad, **antes** de llamar a Cal.com. Luego entra en la sección crítica:
+  1. bloqueo por **fecha** en Redis (`SET NX` con caducidad de 45 s): dos instancias nunca comprueban y crean a la vez para el mismo día;
+  2. ¿ya existe una reserva con esta referencia? (reintentos, también en otra instancia);
+  3. ¿hay una reserva **activa** (pendiente o aceptada) de cualquier paquete que se solape? Las rechazadas y canceladas no cuentan;
+  4. ¿Cal.com sigue ofreciendo el horario? (es la única comprobación que ve los bloqueos manuales del calendario de Ely);
+  5. crear, releer el `uid` y liberar el bloqueo.
+
+  Si el bloqueo no se obtiene en 8 s, o Redis no responde, la respuesta es `503 busy` (reintentable; nunca un falso éxito). Si la creación queda incierta (red caída), el bloqueo se mantiene 5 s más para que Cal.com muestre la reserva si llegó a crearse, y el cliente reintenta con la misma referencia sin duplicar. Si una instancia se cae, el bloqueo caduca solo. El rechazo de Cal.com ante un choque queda como segunda línea de defensa.
+- **Horario perdido:** si al enviar el horario ya no está libre, el paso 5 muestra "Horario no disponible" con "Elegir otro horario" (Figma 257:5898). Se conservan sesión, paquete, detalles, contacto y consentimiento. Lo mismo ocurre si el paso 3 detecta que la hora guardada ya no está libre (recarga o pestaña vieja).
+- **Abuso** (`api/_lib/rate-limit.js`): máximo 12 envíos por IP cada 10 minutos y 8 solicitudes **nuevas** por IP cada 24 horas. Los reintentos con la misma referencia no cuentan como nuevas. Al superarlo, `429 rate_limited` con `Retry-After`, y el sitio muestra un mensaje amable sin perder los datos. Además hay un campo trampa invisible (`sitio`): si llega lleno, se rechaza. Si Redis falla, el límite no bloquea a nadie (el bloqueo de reservas sigue protegiendo).
+- **Paquetes sin evento** o **sin almacén compartido en producción**: el sitio pasa al modo WhatsApp ("horario preferido", "Pendiente de envío") y no registra nada.
+
+### Entornos (nunca escribir en el calendario de Ely desde pruebas)
+
+`api/_lib/environment.js` decide el modo al arrancar y lo registra en el log (sin secretos):
+
+| Modo | Cuándo | Qué hace |
+|---|---|---|
+| `production` | `VERCEL_ENV=production` | Evento real 7652774 con `CAL_API_KEY` |
+| `test` | Fuera de producción, con `CAL_TEST_EVENT_TYPE_ID` + `CAL_TEST_API_KEY` de una cuenta **aislada** | Todos los paquetes usan el evento de prueba (120 min) |
+| `read-only` | Cualquier otro caso (`npm run dev`, Preview sin cuenta de prueba) | No crea reservas: la disponibilidad responde `reservable: false` y crear se rechaza **antes** de llamar a Cal.com |
+
+- El evento de prueba no puede ser 7652774 ni 7600420: los dos son de la cuenta de Ely (7600420 escribe en su Google Calendar).
+- Segunda barrera: el cliente de Cal.com se crea con `allowWrites: false` fuera de producción y de pruebas aisladas.
+- Antes de cualquier prueba real que escriba, `npm run cal:check -- --test` muestra a qué cuenta llega la clave (`GET /v2/me`) y qué devuelve el evento, sin crear nada. **Anota aquí la cuenta y el evento comprobados** antes de escribir.
+
+### Variables de entorno
+
+| Variable | Dónde | Uso |
+|---|---|---|
+| `CAL_API_KEY` | Production | Clave de Cal.com de Ely. Solo servidor. |
+| `KV_REST_API_URL` · `KV_REST_API_TOKEN` | Production (y Preview si se prueba) | Redis de Upstash (integración gratuita de Vercel Marketplace; también vale `UPSTASH_REDIS_REST_URL` · `UPSTASH_REDIS_REST_TOKEN`). **Sin ellas, producción no reserva en línea** (modo WhatsApp). |
+| `CRON_SECRET` | Production | Protege el cron. Vercel la envía como `Authorization: Bearer …`. |
+| `RESEND_API_KEY` · `REMINDER_EMAIL_TO` · `REMINDER_EMAIL_FROM` | Production (opcional) | Correo del recordatorio diario a Ely. Sin ellas, el recordatorio solo queda en el log. |
+| `CAL_TEST_EVENT_TYPE_ID` · `CAL_TEST_API_KEY` | Preview / local | Cuenta de Cal.com de prueba aislada |
+| `CAL_API_BASE` | Opcional | Por defecto `https://api.cal.com` |
+
+Secretos sin exponerlos: nunca en el chat, en el código ni en esta carpeta. En local, `bash tools/set-secret.sh NOMBRE` pide el valor sin mostrarlo y lo guarda en `~/.config/ely-reservas/env` (permisos 600). En Vercel, Settings → Environment Variables, como **Sensitive**. `CAL_API_KEY` va solo en **Production**.
+
+### Recordatorio de 24 horas para Ely
+
+Solo para Ely, nunca para el cliente, y nunca cambia una reserva. Opciones, en orden de preferencia:
+
+1. **Workflow de Cal.com** (solo configuración). Pendiente de comprobar en una cuenta de prueba (T-RM-01 a T-RM-06): la documentación no aclara si se dispara con reservas creadas por la API, si el paso de espera necesita un plan de pago ni si se salta las reservas ya resueltas. Ajustes para Dylan o Ely, **después** de esa comprobación:
+   - Cal.com → Workflows → New. Disparador: **When booking is requested**. Evento: **Website** (7652774).
+   - Paso: **Delay** → Wait for **24 hours**.
+   - Acción: **Send email to host** (o a la dirección de Ely). Nunca acciones al asistente, ni SMS ni WhatsApp (cuestan créditos y llegarían al cliente).
+   - En el plan gratuito el texto del correo es el predeterminado y no se puede editar.
+2. **Tarea diaria de solo lectura** (ya construida: `api/cron/review-reminder.js`, 13:00 UTC = 9:00 en Caracas). Lista las solicitudes del sitio que siguen pendientes 24 h o más y manda a Ely **un** correo con el resumen (Resend, plan gratuito). No tiene ninguna llamada que confirme, rechace o cancele. En el plan Hobby corre una vez al día, así que el aviso llega entre 24 y 48 h después de la solicitud. **Necesita** `RESEND_API_KEY` y `REMINDER_EMAIL_TO`; sin ellas solo escribe el resumen en el log.
+3. **Revisión manual diaria** (siempre vale como respaldo, sin costo): Ely abre Cal.com → Bookings → **Unconfirmed** una vez al día y revisa las que tienen más de 24 horas.
+
+### Procedimiento de Ely (operación diaria)
+
+- **Revisar solicitudes:** Cal.com → Bookings → Unconfirmed. Si recibiste el abono, **Confirmar**. Si la solicitud quedó abandonada, **Rechazar** o **Cancelar**: el horario vuelve a estar disponible en la página. Si el cliente dice que pagó y aún no lo verificas, déjala pendiente.
+- **Bloquear tiempo extra** (por ejemplo, una recepción de 14:00 que termina a las 17:00): crea un evento en tu **Google Calendar conectado** de 16:00 a 17:00, marcado como **Ocupado**. Cal.com deja de ofrecer el bloque de 16:00 a 18:00 y la página lo refleja en la siguiente consulta. Para liberarlo, borra ese evento.
+- **Si un cliente ya tenía ese bloque:** contáctalo y **reprograma, rechaza o cancela su reserva en Cal.com**.
+- **Cambios de reservas siempre en Cal.com.** Mover o borrar en Google Calendar la copia de una reserva de Cal.com **no** cambia la reserva.
 
 ### Archivos
 
 | Archivo | Qué es |
 |---|---|
 | `api/availability.js` · `api/bookings.js` | Endpoints públicos |
-| `api/cron/expire-requests.js` | Tarea programada de vencimiento (protegida con `CRON_SECRET`) |
-| `api/_lib/cal-events.js` | **Mapa paquete → evento de Cal.com** (explícito, uno por paquete) |
-| `api/_lib/booking-service.js` | Lógica de reservas y vencimiento |
-| `api/_lib/cal-client.js` | Cliente de Cal.com v2 (versiones por endpoint) |
-| `api/_lib/catalog.js` · `api/_lib/time.js` · `api/_lib/http.js` | Catálogo compartido con el navegador, zonas horarias, utilidades HTTP |
-| `js/booking-config.js` · `js/booking-data.js` | Configuración y precios, compartidos con el servidor |
-| `vercel.json` | Cron diario |
-| `tools/dev-server.js` | Sitio + `/api` en local |
-| `tools/set-secret.sh` · `tools/cal-check.js` | Secretos locales y comprobación real de solo lectura |
+| `api/cron/review-reminder.js` · `api/_lib/reminder.js` | Recordatorio diario para Ely (solo lectura, protegido con `CRON_SECRET`) |
+| `api/_lib/booking-service.js` | Validación, sección crítica, creación y lista para el recordatorio |
+| `api/_lib/environment.js` | Modo production / test / read-only |
+| `api/_lib/store.js` · `api/_lib/rate-limit.js` | Redis (o memoria en local), bloqueo y límite de envíos |
+| `api/_lib/cal-events.js` | Mapa paquete → evento de Cal.com (todos a 7652774, 120 min) |
+| `api/_lib/cal-client.js` | Cliente de Cal.com v2: horarios, crear, leer, listar, `GET /v2/me`. Sin rechazar ni cancelar. |
+| `js/booking-config.js` · `js/booking-data.js` | Configuración, precios y reglas de Newborn, compartidos con el servidor |
+| `vercel.json` | Cron diario del recordatorio |
+| `tools/dev-server.js` · `tools/cal-check.js` · `tools/set-secret.sh` | Sitio + `/api` en local, comprobación real de solo lectura, secretos locales |
 | `tests/` | Pruebas automatizadas con Cal.com simulado |
-
-### Variables de entorno
-
-| Variable | Obligatoria | Uso |
-|---|---|---|
-| `CAL_API_KEY` | Sí | Clave de API de Cal.com (`cal_…`). Solo servidor. |
-| `CRON_SECRET` | Sí | Protege el cron. Vercel la envía como `Authorization: Bearer …`. Sin ella, el cron rechaza todo. |
-| `EXPIRATION_MODE` | No | `off` (por defecto), `dry-run` (solo informa) u `on`. En producción, `on` está **bloqueado** en el código hasta definir la regla de abonos en revisión. |
-| `CAL_API_BASE` | No | Por defecto `https://api.cal.com`. |
-
-### Configurar los secretos sin exponerlos
-
-Nunca los pegues en el chat, en el código ni en archivos dentro de esta carpeta: todo lo que hay aquí se publica.
-
-1. **Revoca la clave que se compartió antes** (Cal.com → Settings → Developer → API Keys) y crea una nueva.
-2. **Local:** `bash tools/set-secret.sh CAL_API_KEY` pide la clave sin mostrarla y la guarda en `~/.config/ely-reservas/env` (permisos 600, fuera del repo). `bash tools/set-secret.sh CRON_SECRET --generate` crea un secreto aleatorio.
-3. **Vercel:** Project → Settings → Environment Variables. Agrega `CAL_API_KEY` y `CRON_SECRET` como **Sensitive**, solo en **Production**. Para el cron puedes generar el valor con `openssl rand -hex 32 | pbcopy` y pegarlo. Si se activan en Preview, las vistas previas también crearían reservas reales.
-
-### Conectar un paquete
-
-1. Crea en Cal.com un evento por paquete (o por grupo de paquetes con la misma duración y reglas), con aprobación manual, teléfono obligatorio y correo oculto.
-2. Agrégalo en `api/_lib/cal-events.js`: `'embarazo/estudio': { eventTypeId: 1234567, durationMinutes: 120 }`. Hoy **todos los paquetes** usan el evento "Website" (7652774, 2 h) de la cuenta de Ely: un solo estudio y una sola agenda. Por decisión de Ely, los paquetes de "2 a 3 h" y "unas 3 h" también bloquean 2 h. La prueba `tests/cal-events.test.js` falla si un paquete del catálogo queda sin mapear.
-3. Ejecuta `npm run cal:check` (solo lectura) y prueba en local con `npm run dev`.
 
 ### Desarrollo y pruebas
 
 ```bash
-npm run dev        # sitio + /api en http://localhost:8080 (lee ~/.config/ely-reservas/env)
+npm run dev        # sitio + /api en http://localhost:8080 (modo read-only salvo cuenta de prueba)
 npm test           # pruebas automatizadas (Cal.com simulado, sin red)
 npm run check      # enlaces + pruebas
-npm run cal:check -- --event <id> --duration 120   # Cal.com real, solo lectura
+npm run cal:check -- --test   # cuenta de prueba aislada: solo lectura
 ```
 
-`python3 -m http.server` ya no basta para probar reservas: no ejecuta `/api`, y los paquetes con evento mostrarían "No pudimos consultar la disponibilidad".
-
-### Vencimiento a las 24 horas
-
-- Cada solicitud guarda `venceEn` = creación + 24 h en el metadata.
-- `api/cron/expire-requests.js` lista las pendientes del sitio y relee el **estado vigente** de cada una. Solo rechaza (`/decline`) las que siguen `pending` y ya vencieron; nunca toca las confirmadas ni las que no creó el sitio. Repetirla es seguro.
-- **Está desactivado** (`EXPIRATION_MODE=off`) y en producción no puede activarse hasta decidir qué hacer si el cliente pagó pero Ely aún no revisó el abono (`PAYMENT_REVIEW_RULE` en ese archivo).
-- `vercel.json` lo programa **una vez al día** (13:00 UTC, 9:00 en Caracas) porque el plan Hobby no permite más. Con eso una solicitud podría vencer hasta ~48 h después de creada. Para vencer a tiempo hace falta Vercel Pro (por ejemplo `*/15 * * * *`) o un programador externo que llame al endpoint con el `CRON_SECRET`.
-- Mientras esté desactivado, los textos del sitio piden el abono en 24 h, pero **no prometen** que el horario se libere automáticamente.
+El Cal.com simulado (`tests/helpers/fake-cal.js`) puede **no** hacer cumplir los choques (`enforce: false`). Así `tests/concurrency.test.js` prueba que lo que evita duplicados es el sitio: sin el bloqueo, la misma prueba crea dos reservas.
 
 ### Webhooks
 
-No se usan. Sin base de datos no hay una copia local que sincronizar: cada consulta lee el estado actual de Cal.com, así que confirmaciones, rechazos, cancelaciones y cambios de fecha hechos en Cal.com se reflejan sin webhook. Si en el futuro se agrega una base de datos, harán falta webhooks firmados (`x-cal-signature-256`, HMAC-SHA256 del cuerpo) y una reconciliación periódica.
-
-### Límites conocidos
-
-- El endpoint de reservas es público y una solicitud pendiente bloquea el horario: alguien podría llenar la agenda con solicitudes falsas. Conviene una regla de límite de peticiones en Vercel Firewall para `/api/bookings`.
-- Los detalles del paso 4 se validan en tamaño y tipo, pero no campo por campo.
-- Si Ely confirma justo entre la relectura y el rechazo del cron, la carrera es de milisegundos y no se puede descartar del todo: la API de rechazo no ofrece una condición.
-- Cal.com no documenta la codificación de la firma de los webhooks (hex o base64) ni un código de error específico para "horario ocupado". El conflicto se reconoce por estado 409, o por 400 con mensaje de horario no disponible.
+No se usan. Sin base de datos no hay copia local que sincronizar: cada consulta lee el estado actual de Cal.com.
 
 ### Comprobaciones reales en Cal.com
 
-Las pruebas automatizadas usan un Cal.com simulado. Con la cuenta real (evento de prueba 7600420, vista previa de Vercel, 22/10/2026):
+Hechas con la cuenta real (evento 7600420, 22/10/2026, antes de las reglas actuales):
 - [x] `/v2/slots`: lunes a sábado; 08, 10, 14 y 16 h; 120 min.
-- [x] Solicitud desde el sitio sin correo: queda `pending`, bloquea el horario y se ve en Google Calendar. Cal.com genera un correo interno `…@sms.cal.com`.
-- [x] `attendee.phoneNumber` llena el teléfono obligatorio del evento.
-- [x] El `metadata` se guarda y vuelve al leer la reserva.
-- [x] Confirmar en Cal.com: la reserva pasa a aceptada y queda en Google Calendar.
-- [ ] Rechazar y cancelar desde Cal.com y comprobar que el horario se libera.
-- [ ] Respuesta real de Cal.com ante un horario ocupado (código y mensaje).
-- [ ] Solapamiento entre dos eventos distintos del mismo calendario.
-- [ ] Cron en `dry-run` en producción.
+- [x] Solicitud sin correo: queda `pending`, bloquea el horario y se ve en Google Calendar. Cal.com genera un correo interno `…@sms.cal.com`.
+- [x] `attendee.phoneNumber` llena el teléfono del evento; el `metadata` se guarda y vuelve.
+- [x] Confirmar en Cal.com: pasa a aceptada y queda en Google Calendar.
+
+Pendientes, **solo en una cuenta de prueba aislada** (no hay credenciales todavía):
+- [ ] Rechazar y cancelar liberan el horario; aceptar lo mantiene; una pendiente bloquea otro servicio (T-LC-04 a T-LC-07).
+- [ ] Creaciones en paralelo, solape con pendiente y con aceptada, y la respuesta real de Cal.com ante un choque (T-DB-12). Actualizar `CONFLICT_PATTERN` si hace falta.
+- [ ] `GET /v2/bookings` sin filtro de estado devuelve también las pendientes (la comprobación de solapes lo supone).
+- [ ] Bloqueo manual en Google Calendar → desaparece de `/v2/slots`, y el retraso entre el cambio y Cal.com (T-SY-01 a T-SY-08).
+- [ ] Workflow "When booking is requested" + espera de 24 h con una reserva creada por la API (T-RM-01 a T-RM-06).
+- [ ] Qué calendario revisa el evento 7652774 para detectar conflictos (Advanced → "Checking for conflicts") en la cuenta de Ely.
 
 Ojo: `GET /v2/bookings/{uid}` responde sin autenticación, así que quien conozca la referencia puede leer nombre y teléfono de esa reserva. La referencia solo se muestra al cliente y viaja a Ely por WhatsApp.
 
@@ -223,9 +255,9 @@ Ojo: `GET /v2/bookings/{uid}` responde sin autenticación, así que quien conozc
 - La foto de historia de Recepciones trae un margen blanco y una barra marrón incrustados.
 
 ### Contenido derivado (no viene literal de Figma)
-- **Inicio:** el texto de 3 diapositivas del hero (Familiar, Parejas, Cumpleaños) y 4 pestañas del selector vienen del texto de su categoría.
+- **Inicio:** 4 pestañas del selector de sesiones vienen del texto de su categoría. El hero sigue la tabla de Figma 283:3353.
 - **Detalle de servicio:** solo Embarazo tiene un capítulo 2 en Figma. También son derivados el estado "Sesión no encontrada" y el mensaje de WhatsApp por servicio.
-- **Temporada detalle:** Figma solo trae Navidad con datos "por confirmar"; las otras temporadas reutilizan ese contenido. La página lleva `noindex`.
+- **Temporada detalle:** no se publica (`.vercelignore`): no hay páginas individuales de temporada. El archivo queda como plantilla.
 - **Galería:** la categoría de algunas fotos y el orden en móvil tras "Ver más fotos".
 - **Reservar:** mensajes de error, campos de los servicios sin formulario propio en Figma y límites de los contadores.
 - **En todas las páginas:** textos alternativos, títulos de pestaña y diseño de tablet (768–1023). El menú móvil abierto y los estados hover se derivaron del sistema de diseño.

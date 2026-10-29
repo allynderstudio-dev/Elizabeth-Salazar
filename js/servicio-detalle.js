@@ -258,16 +258,17 @@
     </section>`
       : '';
 
-  // Preparación: lista simple, o con etiqueta por ítem (Embarazo: «Recomendaciones para tu sesión»)
+  // Preparación: lista simple, o rejilla de recomendaciones con etiqueta y sin iconos
+  // (Embarazo: «Recomendaciones para tu sesión», Figma 49:2382)
   const preparationList = (items) =>
     typeof items[0] === 'string'
       ? featureList(items, 'check')
       : `
-                <ul class="feature-list sd-recs">
+                <ul class="sd-recs">
                   ${items
                     .map(
                       (r) =>
-                        `<li class="feature-item"><span class="feature-item__icon">${icon('check')}</span><span class="sd-rec"><span class="sd-rec__label">${esc(r.label)}${r.badge ? ` <span class="sd-badge sd-badge--small">${esc(r.badge)}</span>` : ''}</span><span>${esc(r.text)}</span></span></li>`
+                        `<li class="sd-rec"><p class="sd-rec__label">${esc(r.label)}${r.badge ? ` <span class="sd-badge sd-badge--small">${esc(r.badge)}</span>` : ''}</p><p class="sd-rec__text">${esc(r.text)}</p></li>`
                     )
                     .join('\n                  ')}
                 </ul>`;
@@ -276,7 +277,7 @@
     const prepTitle = s.preparationTitle || C.preparationTitle;
     return `
     <!-- 07 Lo que incluye + 08 Preparación -->
-    <section class="section sd-checklists" aria-label="${esc(C.includedTitle)} y ${esc(prepTitle.toLowerCase())}">
+    <section class="section sd-checklists${s.preparationTitle ? ' sd-checklists--recs' : ''}" aria-label="${esc(C.includedTitle)} y ${esc(prepTitle.toLowerCase())}">
       <div class="container sd-checklists__inner">
         <div class="sd-checklist">
           <h2 class="sd-checklist__title">${esc(C.includedTitle)}</h2>${featureList(s.included, 'check')}

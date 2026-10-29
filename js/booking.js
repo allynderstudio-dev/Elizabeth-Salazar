@@ -33,22 +33,22 @@
     { name: 'Revisión', title: 'Revisa tu solicitud', subtitle: () => 'Confirma que todo esté bien antes de enviarla. Tu sesión se confirma después del abono del 50%.' },
   ];
 
-  // Copias según el modo. "live" parte de Figma, sin prometer un bloqueo de 24 horas:
-  // el horario queda apartado mientras la solicitud esté pendiente en Cal.com, y el
-  // vencimiento automático aún no está activo (ver README).
-  // "manual" = ajuste mínimo para no afirmar que la solicitud quedó registrada.
+  // Copias según el modo. "live" = textos aprobados en Figma (28/10/2026): el abono se pide
+  // dentro de 24 horas, pero la solicitud NUNCA vence sola; el horario sigue apartado hasta que
+  // Ely confirma, rechaza o cancela en Cal.com (ver README).
+  // "manual" = modo WhatsApp (sin Cal.com): no afirma que la solicitud quedó registrada.
   const COPY = {
     live: {
       submit: 'Enviar solicitud de reserva',
       notice: 'Al enviar tu solicitud, tu horario queda apartado mientras Ely la revisa. Para confirmar tu sesión, debes realizar el abono del 50% del valor total.',
       after1: 'Registramos tu solicitud y apartamos tu horario mientras Ely la revisa.',
       after2: (d) => `Realizas el abono de ${d} (50%) y lo coordinas con Ely por WhatsApp.`,
-      successTitle: 'Recibimos tu solicitud',
-      successSubtitle: 'Tu horario quedó apartado mientras Ely revisa tu solicitud. Para confirmar tu sesión, debes realizar el abono del 50%.',
+      successTitle: 'Recibimos tu solicitud de reserva',
+      successSubtitle: 'Tu horario ha quedado apartado. Para confirmar tu sesión, realiza el abono del 50% dentro de las próximas 24 horas y envía el comprobante por WhatsApp. Ely verificará el pago y te confirmará la reserva.',
       badge: 'Pendiente de abono',
       statusTitle: 'Falta tu abono del 50%',
       statusText: 'Tu solicitud quedó registrada, pero aún no es una reserva confirmada.',
-      next1: (d) => `Realiza el abono de ${d} (50%) dentro de las 24 horas siguientes, según las políticas de reserva.`,
+      next1: () => 'Envía el mensaje de WhatsApp: así Ely recibe los datos de tu solicitud.',
       timeLegend: 'Horarios disponibles',
       timeNote: 'Cada sesión dura alrededor de 2 horas. Los horarios tachados ya no están disponibles.',
     },
@@ -63,6 +63,7 @@
       statusTitle: 'Envía tu solicitud por WhatsApp',
       statusText: 'Aún no está registrada ni es una reserva confirmada; se completa al enviar el mensaje.',
       next1: (d) => `Envía el mensaje por WhatsApp y realiza el abono de ${d} (50%) en las próximas 24 horas.`,
+      // Compartido por los dos modos (Figma, "Próximos pasos" 2)
       timeLegend: 'Elige tu horario preferido',
       timeNote: 'Cada sesión dura alrededor de 2 horas. Ely confirmará la disponibilidad por WhatsApp.',
     },
@@ -86,7 +87,10 @@
     slotTaken: 'Ese horario acaba de ocuparse. Elige otro, por favor.',
     priceChanged: 'El precio de este paquete cambió. Revisa el resumen antes de enviar.',
     availability: 'No pudimos consultar la disponibilidad. Inténtalo de nuevo en unos minutos o escríbenos por WhatsApp.',
+    busy: 'Estamos procesando otra solicitud para ese día. Vuelve a intentarlo en unos segundos: no se duplicará.',
+    rateLimited: 'Recibimos varias solicitudes seguidas desde tu conexión. Espera unos minutos y vuelve a intentarlo, o escríbenos por WhatsApp. Tus datos se mantienen.',
   };
+  const NEXT2 = (d) => `Coordina con Ely el método de pago del abono de ${d}.`;
 
   /* ---------- Fechas (hora de Venezuela) ---------- */
   const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -103,12 +107,8 @@
     return `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} de ${MONTHS[dt.getUTCMonth()]}${withYear ? ` de ${dt.getUTCFullYear()}` : ''}`;
   };
   const shortDate = (s) => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
-  // Suma meses de calendario; si el día no existe en el mes de destino, usa el último (31/10 + 4 → 28/02)
-  const addCalendarMonths = (s, n) => {
-    const [y, m, d] = s.split('-').map(Number);
-    const last = new Date(Date.UTC(y, m - 1 + n + 1, 0)).getUTCDate();
-    return isoFromDate(new Date(Date.UTC(y, m - 1 + n, Math.min(d, last))));
-  };
+  // Meses de calendario con ajuste a fin de mes (31/10 + 4 → 28/02); compartido con el servidor
+  const { addCalendarMonths } = DATA;
   const TODAY = todayIso();
   const MIN_DATE = addDays(TODAY, CFG.minDaysAhead);
   const monthKey = (s) => s.slice(0, 7);
@@ -129,6 +129,8 @@
     viewMonth: null, details: {}, name: '', code: CFG.defaultCountryCode, phone: '', consent: false,
     // Referencia propia de la solicitud: se reutiliza en reintentos para no duplicar reservas
     requestRef: null, requestKey: null, booking: null,
+    // Horario que dejó de estar libre al enviar o al volver: { date, time } (Figma 257:5898)
+    conflict: null,
   });
   let state = blank();
   const touched = new Set();
@@ -141,11 +143,14 @@
 
   const getService = () => DATA.SERVICES.find((s) => s.slug === state.service) || null;
   const getPackage = () => { const s = getService(); return s ? s.packages.find((p) => p.slug === state.pkg) || null : null; };
+  // Newborn con "¿Tu bebé ya nació?" = No: no se puede reservar (BR-08)
+  const unbornBlocked = () => Boolean(getService() && getService().requiresBirth && state.details.nacio === 'No');
   // Precio del paquete elegido con sus recargos (Newborn: bebés adicionales). null sin paquete.
   const getQuote = () => {
     const s = getService();
     const p = getPackage();
     if (!s || !p) return null;
+    if (unbornBlocked()) return null; // Newborn sin nacer: no se muestra precio ni abono
     const rule = s.babies;
     const babies = rule ? Math.min(rule.max, Math.max(rule.min, Math.round(Number(state.details[rule.field])) || rule.min)) : undefined;
     return DATA.quote(s, p, babies);
@@ -208,6 +213,8 @@
       referencia: requestRef(),
       servicio: s.slug, paquete: p.slug, precio: q.total, abono: deposit(q.total),
       ...(q.babies ? { bebes: q.babies } : {}),
+      ...(s.requiresBirth ? { nacio: state.details.nacio, nacimiento: state.details.nacimiento || '' } : {}),
+      sitio: $('#sitio-web') ? $('#sitio-web').value : '', // campo trampa: las personas no lo ven
       fecha: state.date, hora: state.time, zonaHoraria: CFG.timezone,
       nombre: state.name.trim(), whatsapp: `${state.code}${digits(state.phone)}`,
       detalles: detailEntries().reduce((o, [label, value]) => ({ ...o, [label]: value }), {}),
@@ -327,8 +334,9 @@
   packagesEl.addEventListener('change', (e) => {
     if (e.target.name !== 'paquete') return;
     if (state.pkg !== e.target.value) {
+      // Se conserva la hora: todos los paquetes usan el mismo calendario y bloques de 2 h.
+      // Si con el nuevo paquete ya no está libre, el paso 3 lo avisa (ver goTo).
       state.pkg = e.target.value;
-      if (LIVE_AVAILABILITY) state.time = null; // la disponibilidad real puede depender del paquete
     }
     hideError('error-paquete');
     renderAll();
@@ -336,6 +344,7 @@
   });
 
   /* ---------- Paso 3 · Calendario y horarios ---------- */
+  const lostSlot = (value) => Boolean(state.conflict && state.conflict.date === state.date && state.conflict.time === value);
   const calDays = $('[data-cal-days]');
   const slotsEl = $('[data-time-slots]');
   let monthAvailability = null; // null = sin disponibilidad real (modo WhatsApp)
@@ -425,7 +434,7 @@
       return `<label class="time-slot${checked ? ' is-selected' : ''}${disabled && state.date ? ' is-unavailable' : ''}">
         <input class="visually-hidden" type="radio" name="hora" value="${value}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}>
         <img class="time-slot__check" src="assets/icons/check-inverse.svg" alt="" width="16" height="16">
-        <span>${timeLabel(value)}</span>${disabled && state.date ? '<span class="visually-hidden">, no disponible</span>' : ''}
+        <span>${timeLabel(value)}</span>${lostSlot(value) ? '<span class="time-slot__tag">No disponible</span>' : disabled && state.date ? '<span class="visually-hidden">, no disponible</span>' : ''}
       </label>`;
     }).join('');
     const note = $('[data-time-note]');
@@ -503,6 +512,9 @@
   slotsEl.addEventListener('change', (e) => {
     if (e.target.name !== 'hora') return;
     state.time = e.target.value;
+    state.conflict = null; // eligió otro horario
+    updateConflict();
+    updateNext();
     hideError('error-hora');
     renderSlots();
     const input = slotsEl.querySelector(`input[value="${state.time}"]`);
@@ -529,7 +541,8 @@
     const dayText = `${days} ${days === 1 ? 'día' : 'días'}`;
     const monthText = `${months} ${months === 1 ? 'mes' : 'meses'}`;
     const label = months === 0 ? dayText : days === 0 ? monthText : `${monthText} y ${dayText}`;
-    return { months, days, label, eligible: session < addCalendarMonths(birth, 4) };
+    const eligible = DATA.newbornEligibility({ born: 'Sí', birth, session, today: TODAY }) === 'ok';
+    return { months, days, label, eligible };
   }
 
   // Definiciones (Figma: Paso 4 Embarazo + "Conditional detail forms").
@@ -554,18 +567,22 @@
           helper: () => `Calculada a la fecha de tu sesión${state.date ? ` (${shortDate(state.date)})` : ''}.`,
           compute: (d) => { const a = babyAge(d.nacimiento); return a ? a.label : ''; },
           summary: (v) => (v ? `Edad del bebé: ${v}` : '') },
-        { type: 'date', name: 'fpp', label: 'Fecha probable de parto', min: TODAY, when: (d) => d.nacio === 'No', summary: (v) => `Fecha probable de parto: ${shortDate(v)}` },
       ] },
       { row: [
-        { type: 'stepper', name: 'bebes', label: 'Cantidad de bebés', value: 1, min: 1, max: 3, unit: 'bebé', helper: 'El precio incluye un bebé. Cada bebé adicional suma US$20.', summary: (v) => `Bebés: ${v}` },
-        { type: 'stepper', name: 'acompanantes', label: 'Acompañantes', value: 1, min: 0, max: 1, unit: 'persona', helper: 'Una persona puede acompañarte para ayudar.' },
+        { type: 'stepper', name: 'bebes', label: 'Cantidad de bebés', value: 1, min: 1, max: 3, unit: 'bebé', helper: 'El precio incluye un bebé. Cada bebé adicional suma US$20.', summary: (v) => `Bebés: ${v}`, when: (d) => d.nacio !== 'No' },
+        { type: 'stepper', name: 'acompanantes', label: 'Acompañantes', value: 1, min: 0, max: 1, unit: 'persona', helper: 'Una persona puede acompañarte para ayudar.', when: (d) => d.nacio !== 'No' },
       ] },
+      // Bebé sin nacer: no se reserva (BR-08, Figma 256:6027). Solo este aviso y "Volver a sesiones".
+      { type: 'gate', name: 'sinNacer', title: 'Tu bebé aún no ha nacido',
+        body: 'Para reservar una sesión Newborn, es necesario que tu bebé ya haya nacido. Cuando llegue ese momento, podrás elegir una fecha disponible para su sesión.',
+        action: { label: 'Volver a sesiones', step: 1 },
+        when: (d) => d.nacio === 'No' },
       // Bloquea el paso si el bebé tendrá 4 meses o más el día de la sesión
       { type: 'gate', name: 'elegible', title: 'Sesión Newborn no disponible',
         body: 'Las sesiones Newborn están disponibles para bebés de hasta 3 meses. A partir del cuarto mes, te recomendamos nuestra sesión Mes a Mes.',
         action: { label: 'Ver sesión Mes a Mes', href: 'servicio-detalle.html?sesion=mes-a-mes' },
         when: (d) => d.nacio === 'Sí' && Boolean(babyAge(d.nacimiento)) && !babyAge(d.nacimiento).eligible },
-      { type: 'notice', title: 'Edad de tu bebé', body: 'Las sesiones Newborn son para bebés de hasta 3 meses. El posado clásico es entre el día 8 y el 12 de nacido; si tu bebé tiene más de 15 días, prepararemos una sesión adecuada a su edad.' },
+      { type: 'notice', when: (d) => d.nacio !== 'No', title: 'Edad de tu bebé', body: 'Las sesiones Newborn son para bebés de hasta 3 meses. El posado clásico es entre el día 8 y el 12 de nacido; si tu bebé tiene más de 15 días, prepararemos una sesión adecuada a su edad.' },
     ],
     'cumpleanos-infantiles': [
       { row: [
@@ -669,10 +686,24 @@
         <span class="notice__bar" aria-hidden="true"></span>
         <div class="notice__content"><span class="notice__icon"><img src="assets/icons/alert.svg" alt="" width="20" height="20"></span>
         <div class="notice__text"><p class="notice__title">${esc(f.title)}</p><p class="notice__body">${esc(f.body)}</p>
-        <p class="notice__action"><a class="btn btn--secondary" href="${esc(f.action.href)}">${esc(f.action.label)}</a></p></div></div>
+        <p class="notice__action">${f.action.step
+          ? `<button class="btn btn--secondary" type="button" data-gate-step="${f.action.step}">${esc(f.action.label)}</button>`
+          : `<a class="btn btn--secondary" href="${esc(f.action.href)}">${esc(f.action.label)}</a>`}</p></div></div>
       </div>`;
       default: return '';
     }
+  }
+
+  // Valores iniciales de los contadores; un borrador o enlace fuera de rango se ajusta al límite
+  // (la interfaz y el precio coinciden)
+  function clampSteppers(defs = FORMS[(getService() || {}).form] || []) {
+    allFields(defs).filter((f) => f.type === 'stepper').forEach((f) => {
+      const v = state.details[f.name];
+      if (v === undefined || v === '') state.details[f.name] = f.value;
+      else if (!Number.isInteger(Number(v)) || Number(v) < f.min || Number(v) > f.max) {
+        state.details[f.name] = Math.min(f.max, Math.max(f.min, Math.round(Number(v)) || f.value));
+      }
+    });
   }
 
   function renderDetailsForm() {
@@ -682,14 +713,27 @@
     detailsEl.dataset.key = key;
     const defs = s ? FORMS[s.form] || FORMS.general : [];
     // Valores iniciales (steppers y opción fija por paquete)
+    clampSteppers(defs);
     allFields(defs).forEach((f) => {
-      if (f.type === 'stepper' && (state.details[f.name] === undefined || state.details[f.name] === '')) state.details[f.name] = f.value;
       if (f.locked) state.details[f.name] = f.locked();
     });
     detailsEl.innerHTML = defs.map((f) => (f.row
       ? `<div class="form-row">${f.row.map(fieldHTML).join('')}</div>`
       : fieldHTML(f))).join('');
     applyVisibility();
+  }
+
+  const unborn4 = () => unbornBlocked() && currentFields().some((f) => f.name === 'sinNacer');
+  // Bloqueos del paso 4: Newborn sin nacer o fuera de edad, o fecha de nacimiento futura
+  const step4Blocked = () => currentFields().some((f) => visible(f)
+    && ((f.type === 'gate') || (f.maxError && state.details[f.name] > f.max)));
+
+  // "Continuar" deshabilitado (Figma): paso 4 bloqueado, o paso 3 tras perder el horario sin elegir otro
+  function updateNext() {
+    const next = $('[data-next]');
+    const off = (state.step === 4 && step4Blocked()) || (state.step === 3 && Boolean(state.conflict) && !state.time);
+    if (off) next.setAttribute('aria-disabled', 'true');
+    else next.removeAttribute('aria-disabled');
   }
 
   function applyVisibility() {
@@ -704,12 +748,16 @@
         if (!msg.classList.contains('field-message--error')) msg.textContent = msg.dataset.helper;
       }
     });
-    // Newborn fuera de edad o fecha de nacimiento futura: "Continuar" queda deshabilitado
-    const blocked = currentFields().some((f) => visible(f)
-      && ((f.type === 'gate') || (f.maxError && state.details[f.name] > f.max)));
-    const next = $('[data-next]');
-    if (blocked && state.step === 4) next.setAttribute('aria-disabled', 'true');
-    else next.removeAttribute('aria-disabled');
+    // Avisos informativos condicionados (Newborn: se ocultan con el bebé sin nacer)
+    const defs = FORMS[(getService() || {}).form] || [];
+    const notices = defs.filter((f) => f.type === 'notice');
+    $$('.notice--info', detailsEl).forEach((el, i) => {
+      const f = notices[i];
+      if (f && f.when) el.hidden = !f.when(state.details);
+    });
+    // Newborn sin nacer: solo la pregunta y el aviso; sin datos de contacto
+    $('.form-group--contact').hidden = unborn4();
+    updateNext();
     $$('.form-row', detailsEl).forEach((row) => {
       row.hidden = [...row.children].every((c) => c.hidden);
     });
@@ -747,6 +795,8 @@
     validateField(name);
   });
   detailsEl.addEventListener('click', (e) => {
+    const gateStep = e.target.closest('[data-gate-step]');
+    if (gateStep) { goTo(Number(gateStep.dataset.gateStep)); return; }
     const btn = e.target.closest('[data-step-btn]');
     if (!btn) return;
     const input = document.getElementById(btn.getAttribute('aria-controls'));
@@ -845,6 +895,7 @@
     const v = state.details[f.name];
     if (v === undefined || v === null || String(v).trim() === '') return true;
     if (f.type === 'date' && ((f.min && v < f.min) || (f.max && v > f.max))) return true;
+    if (f.type === 'stepper' && !(Number.isInteger(Number(v)) && Number(v) >= f.min && Number(v) <= f.max)) return true;
     return false;
   }
 
@@ -1023,16 +1074,17 @@
     let total = '—';
     const q = getQuote();
     if (q) total = money(q.total);
-    else if (s) total = `${s.packages.length > 1 ? 'desde ' : ''}${money(Math.min(...s.packages.map((x) => x.price)))}`;
+    else if (s && !unbornBlocked()) total = `${s.packages.length > 1 ? 'desde ' : ''}${money(Math.min(...s.packages.map((x) => x.price)))}`;
     $('[data-bar-total]').textContent = total;
     // Textos con el abono
     const dep = q ? money(deposit(q.total)) : 'US$0';
     const copy = T();
     $('[data-copy="after2"]').textContent = copy.after2(dep);
     $('[data-copy="next1"]').textContent = copy.next1(dep);
+    $('[data-copy="next2"]').textContent = NEXT2(dep);
     $('[data-status-meta]').textContent = state.booking
-      ? `Abono requerido: ${dep} · Referencia: ${state.booking.referencia}`
-      : `Abono requerido: ${dep}`;
+      ? `Abono requerido: ${dep} (50% del total) · Referencia: ${state.booking.referencia}`
+      : `Abono requerido: ${dep} (50% del total).`;
     // Copias que dependen del modo (puede cambiar con el paquete o el horario)
     $$('[data-copy="submit"]').forEach((el) => { el.textContent = copy.submit; });
     $('[data-copy="after1"]').textContent = copy.after1;
@@ -1091,9 +1143,21 @@
     $('.action-bar__back').hidden = !(step >= 2 && step <= 4);
     $('.booking__back-icon').hidden = step !== 5;
     $('[data-next]').hidden = !(step >= 1 && step <= 4);
-    $('[data-submit]').hidden = step !== 5;
+    $('[data-submit]').hidden = step !== 5 || Boolean(state.conflict);
+    $('[data-submit-side]').hidden = Boolean(state.conflict);
     bar.hidden = success;
+    updateConflict();
+    updateNext();
     if (step === 5 || success) setSummaryOpen(false);
+  }
+
+  // Horario no disponible (Figma 257:5898): en el paso 5 reemplaza el envío; en el paso 3 va
+  // sobre los horarios. Sin estado de éxito, insignia, abono ni enlace a WhatsApp.
+  function updateConflict() {
+    const on = Boolean(state.conflict);
+    $('[data-conflict="review"]').hidden = !(on && state.step === 5);
+    $('[data-conflict="slots"]').hidden = !(on && state.step === 3);
+    $$('[data-wa-preview="review"]', document).forEach((el) => { el.hidden = on; });
   }
 
   function renderAll() {
@@ -1120,13 +1184,19 @@
       // decide el modo y descarta horarios que ya no estén libres.
       if (step > 3 && state.date) state.viewMonth = monthKey(state.date);
       if (!state.viewMonth) state.viewMonth = state.date ? monthKey(state.date) : MIN_MONTH;
+      // Al entrar al paso 3 se vuelve a pedir el mes: Ely puede haber bloqueado horas en su calendario
+      if (step === 3) availabilityCache.delete(cacheKey(state.viewMonth));
       await loadMonth();
-      if (state.date && state.time && !slotFree(state.date, state.time)) { state.time = null; slotLost = true; }
+      if (state.date && state.time && !slotFree(state.date, state.time)) {
+        state.conflict = { date: state.date, time: state.time };
+        state.time = null;
+        slotLost = true;
+      }
       step = Math.min(step, maxReachable());
     }
     state.step = step;
     renderAll();
-    if (slotLost && step === 3) showError('error-hora', ERR.slotTaken);
+    if (slotLost && step === 3) $('[data-conflict="slots"]').focus({ preventScroll: true });
     store.save();
     const url = new URL(location.href);
     url.searchParams.set('paso', step === 'success' ? 'listo' : String(step));
@@ -1157,6 +1227,7 @@
   // (evita que los datos personales terminen en la URL si el script no cargó).
   form.addEventListener('submit', (e) => e.preventDefault());
   $$('[data-submit], [data-submit-side]').forEach((b) => b.addEventListener('click', sendRequest));
+  $('[data-conflict-pick]').addEventListener('click', () => goTo(3));
 
   const setSending = (on) => {
     sending = on;
@@ -1188,15 +1259,27 @@
       store.clear();
       return;
     }
-    if (result.error === 'slot_taken' || result.error === 'not_reservable') {
+    if (result.error === 'slot_taken') {
+      // Se queda en el paso 5 con el aviso y "Elegir otro horario"; se conservan sesión,
+      // paquete, detalles, contacto y consentimiento
+      availabilityCache.delete(monthCache);
+      state.conflict = { date: state.date, time: state.time };
+      state.time = null;
+      renderAll();
+      store.save();
+      $('[data-conflict="review"]').focus({ preventScroll: true });
+      $('[data-conflict="review"]').scrollIntoView({ block: 'center' });
+      return;
+    }
+    if (result.error === 'not_reservable') {
       availabilityCache.delete(monthCache);
       state.time = null;
       await goTo(3);
-      showError('error-hora', result.error === 'slot_taken' ? ERR.slotTaken : ERR.submit);
+      showError('error-hora', ERR.submit);
       return;
     }
-    // 'uncertain': se conserva la referencia; el reintento no duplica la reserva
-    const msg = { uncertain: ERR.uncertain, price_changed: ERR.priceChanged }[result.error] || ERR.submit;
+    // 'uncertain' y 'busy': se conserva la referencia; el reintento no duplica la reserva
+    const msg = { uncertain: ERR.uncertain, busy: ERR.busy, rate_limited: ERR.rateLimited, price_changed: ERR.priceChanged }[result.error] || ERR.submit;
     showError('error-envio', msg);
     store.save();
   }
@@ -1242,6 +1325,8 @@
     }
     // ?temporada=<slug>: no hay paquetes de temporada en el catálogo (precios por confirmar);
     // se inicia en el paso 1 sin preselección.
+
+    clampSteppers();
 
     // Fecha guardada ya no válida
     if (state.date && dayStatus(state.date) !== 'available') { state.date = null; state.time = null; }

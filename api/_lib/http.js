@@ -2,6 +2,8 @@
 const crypto = require('node:crypto');
 const { CalApiError, createCalClient } = require('./cal-client.js');
 const { BookingError, createBookingService } = require('./booking-service.js');
+const { resolveEnvironment } = require('./environment.js');
+const { storeFromEnv } = require('./store.js');
 
 function send(res, status, body, headers = {}) {
   res.statusCode = status;
@@ -36,11 +38,13 @@ function sendError(res, err, log = console) {
       slot_taken: [409, { error: 'slot_taken' }],
       uncertain: [503, { error: 'uncertain' }],
       verification_failed: [502, { error: 'verification_failed' }],
-      blocked: [409, { error: 'blocked', mensaje: err.message }],
+      busy: [503, { error: 'busy' }],
+      rate_limited: [429, { error: 'rate_limited' }],
     };
     const [status, body] = map[err.code] || [500, { error: 'server' }];
     if (status >= 500) log.error(`[reservas] ${err.code}: ${err.message}`);
-    return send(res, status, body);
+    const retry = { busy: '5', rate_limited: String(err.retryAfter || 600) }[err.code];
+    return send(res, status, body, retry ? { 'Retry-After': retry } : {});
   }
   if (err instanceof CalApiError) {
     log.error(`[reservas] Cal.com ${err.kind} ${err.status || ''}: ${err.message}`);
@@ -52,15 +56,28 @@ function sendError(res, err, log = console) {
   return send(res, 500, { error: 'server' });
 }
 
-// Servicio con credenciales del entorno (solo servidor)
+// Servicio con credenciales del entorno (solo servidor). Ver api/_lib/environment.js y store.js.
 let cached = null;
-function serviceFromEnv(env = process.env) {
+function serviceFromEnv(env = process.env, log = console) {
   if (!cached) {
-    const cal = createCalClient({ apiKey: env.CAL_API_KEY, baseUrl: env.CAL_API_BASE || undefined });
-    cached = createBookingService({ cal });
+    const envInfo = resolveEnvironment(env);
+    const store = storeFromEnv(env);
+    const cal = createCalClient({ apiKey: envInfo.apiKey, baseUrl: env.CAL_API_BASE || undefined, allowWrites: envInfo.canWrite });
+    cached = createBookingService({ cal, events: envInfo.events, canWrite: envInfo.canWrite, store, lockPrefix: `ely-reservas:${envInfo.mode}` });
+    cached.store = store;
+    // Sin secretos: solo el modo, el evento y el tipo de almacén
+    const ids = [...new Set(Object.values(envInfo.events).map((e) => e.eventTypeId))].join(',');
+    log.log(`[reservas] modo=${envInfo.mode} eventos=${ids} escritura=${envInfo.canWrite ? 'sí' : 'no'} almacén=${store ? store.kind : 'ninguno'} reservas=${cached.mode}`);
+    if (envInfo.mode === 'production' && !store) log.error('[reservas] Falta el almacén compartido (KV_REST_API_URL/TOKEN): las reservas en línea están desactivadas');
   }
   return cached;
 }
+
+// IP del cliente detrás del proxy de Vercel
+const clientIp = (req) =>
+  String(req.headers['x-vercel-forwarded-for'] || req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'desconocida')
+    .split(',')[0]
+    .trim();
 
 const safeEqual = (a, b) => {
   const x = Buffer.from(String(a));
@@ -68,4 +85,4 @@ const safeEqual = (a, b) => {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 };
 
-module.exports = { send, readJson, queryOf, sendError, serviceFromEnv, safeEqual };
+module.exports = { send, readJson, queryOf, sendError, serviceFromEnv, safeEqual, clientIp };

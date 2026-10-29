@@ -3,8 +3,9 @@
 //   GET  /v2/slots                         cal-api-version 2024-09-04
 //   POST /v2/bookings                      cal-api-version 2026-02-25
 //   GET  /v2/bookings/{uid}                cal-api-version 2026-02-25
-//   POST /v2/bookings/{uid}/decline        cal-api-version 2026-02-25
 //   GET  /v2/bookings (lista, por cursor)  cal-api-version 2026-05-01
+//   GET  /v2/me                            (solo para comprobar a qué cuenta llega una clave)
+// No hay llamadas para confirmar, rechazar ni cancelar: eso lo hace Ely en Cal.com.
 // Cal.com no documenta idempotencia en POST /v2/bookings: los duplicados se evitan en
 // api/_lib/booking-service.js con una referencia propia guardada en metadata.
 const VERSIONS = {
@@ -51,7 +52,8 @@ function classify(status, body) {
   return new CalApiError('rejected', `Cal.com rechazó la solicitud (${status}): ${message}`, { status, body });
 }
 
-function createCalClient({ apiKey, baseUrl = DEFAULT_BASE, fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+// allowWrites: false → createBooking falla antes de llamar a Cal.com (segunda barrera, ver environment.js)
+function createCalClient({ apiKey, baseUrl = DEFAULT_BASE, fetchImpl = globalThis.fetch, timeoutMs = DEFAULT_TIMEOUT_MS, allowWrites = true } = {}) {
   async function request(method, path, { version, query, body } = {}) {
     // Se comprueba al usarla: los paquetes sin evento de Cal.com funcionan sin clave
     if (!apiKey) throw new CalApiError('auth', 'Falta CAL_API_KEY en el servidor');
@@ -63,7 +65,7 @@ function createCalClient({ apiKey, baseUrl = DEFAULT_BASE, fetchImpl = globalThi
         method,
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          'cal-api-version': version,
+          ...(version ? { 'cal-api-version': version } : {}),
           Accept: 'application/json',
           ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
@@ -93,6 +95,7 @@ function createCalClient({ apiKey, baseUrl = DEFAULT_BASE, fetchImpl = globalThi
     },
 
     async createBooking(input) {
+      if (!allowWrites) throw new CalApiError('auth', 'Escritura en Cal.com desactivada en este entorno');
       const json = await request('POST', '/v2/bookings', { version: VERSIONS.booking, body: input });
       return json.data;
     },
@@ -102,8 +105,9 @@ function createCalClient({ apiKey, baseUrl = DEFAULT_BASE, fetchImpl = globalThi
       return json.data;
     },
 
-    async declineBooking(uid, reason) {
-      const json = await request('POST', `/v2/bookings/${encodeURIComponent(uid)}/decline`, { version: VERSIONS.booking, body: { reason } });
+    // Cuenta a la que llega la clave (solo lectura)
+    async getMe() {
+      const json = await request('GET', '/v2/me');
       return json.data;
     },
 

@@ -1,8 +1,23 @@
 // Lógica de reservas, sin dependencias de HTTP (los handlers de api/ la envuelven).
 // Cal.com es la única fuente de verdad: no hay base de datos. Los datos propios de cada
-// solicitud (referencia, precio, abono, vencimiento) viajan en el metadata de la reserva.
+// solicitud (referencia, precio, abono, fecha de creación) viajan en el metadata de la reserva.
+//
+// Sin dobles reservas (BR-06): la comprobación final y la creación forman una sección crítica
+// con un bloqueo por FECHA en un almacén compartido (api/_lib/store.js), así dos instancias
+// nunca crean a la vez para el mismo día. Dentro del bloqueo:
+//   1. ¿ya existe una reserva con esta referencia? (reintentos)
+//   2. ¿hay una reserva activa (pendiente o aceptada) que se solape, de cualquier paquete?
+//   3. ¿Cal.com sigue devolviendo el horario como libre? (ve también los bloqueos manuales
+//      de Ely en su Google Calendar)
+//   4. crear y releer el uid
+// El rechazo de Cal.com ante un choque queda como segunda línea de defensa.
+//
+// Las solicitudes pendientes NUNCA vencen solas (BR-03): Ely las confirma, rechaza o cancela
+// en Cal.com. Este módulo no tiene ninguna ruta que rechace o cancele reservas.
+const crypto = require('node:crypto');
 const { CalApiError } = require('./cal-client.js');
 const { BOOKING_DATA, BOOKING_CONFIG, CAL_EVENTS, findPackage, eventFor, depositFor } = require('./catalog.js');
+const { createMemoryStore } = require('./store.js');
 const T = require('./time.js');
 
 const HOUR = 36e5;
@@ -14,8 +29,13 @@ const HOUR = 36e5;
 //   service  pregunta propia de texto corto (p. ej. identificador "servicio") con "Embarazo · Estudio",
 //            para usarla en el nombre del evento. null = no se envía (la pregunta aún no existe).
 const BOOKING_FIELDS = { notes: 'notes', service: null };
-const EXPIRY_HOURS = 24;
+const REVIEW_AFTER_HOURS = 24; // recordatorio para Ely (BR-15); nunca cambia el estado
 const SOURCE = 'web-ely';
+// Bloqueo de la sección crítica: TTL > duración máxima esperada (cada llamada a Cal.com tiene
+// un tiempo límite de 12 s). Si una instancia se cae, el bloqueo caduca solo.
+// Tras un resultado incierto, el bloqueo se mantiene uncertainHoldMs para que Cal.com muestre
+// la reserva (si llegó a crearse) antes de que otra solicitud compruebe ese día.
+const LOCK = { ttlMs: 45000, waitMs: 8000, startCreateBeforeMs: 30000, uncertainHoldMs: 5000 };
 
 // Errores que el handler traduce a respuestas HTTP
 class BookingError extends Error {
@@ -27,9 +47,17 @@ class BookingError extends Error {
   }
 }
 
-function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFIG, fields = BOOKING_FIELDS, now = () => Date.now(), log = console } = {}) {
+// store: almacén compartido (undefined → memoria, para pruebas; null → sin almacén: no reserva).
+// canWrite: false fuera de producción sin cuenta de prueba aislada (api/_lib/environment.js).
+function createBookingService({
+  cal, events = CAL_EVENTS, config = BOOKING_CONFIG, fields = BOOKING_FIELDS, now = () => Date.now(), log = console,
+  store = createMemoryStore(), canWrite = true, lockPrefix = 'ely-reservas', lock = LOCK,
+  sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+} = {}) {
   const tz = config.timezone;
   const inflight = new Map(); // referencia → promesa (doble clic contra la misma instancia)
+  const online = canWrite && Boolean(store);
+  const siteEventIds = [...new Set(Object.values(events).map((e) => e.eventTypeId))];
 
   const minDate = () => T.addDays(T.todayIn(tz, now()), config.minDaysAhead);
   const maxMonth = () => T.addMonths(minDate().slice(0, 7), config.maxMonthsAhead);
@@ -71,7 +99,7 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
   async function getAvailability({ servicio, paquete, mes }) {
     if (!T.isMonth(mes)) throw new BookingError('invalid', 'Mes inválido', { field: 'mes' });
     const { event } = resolvePackage(servicio, paquete);
-    if (!event) return { reservable: false };
+    if (!event || !online) return { reservable: false };
     const first = minDate().slice(0, 7);
     if (mes < first || mes > maxMonth()) return { reservable: true, duracionMinutos: event.durationMinutes, dias: {} };
     const dias = await freeSlots(event, `${mes}-01`, T.lastDayOfMonth(mes));
@@ -85,7 +113,8 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
     const str = (v) => (typeof v === 'string' ? v.trim() : '');
 
     const { service, pkg, event } = resolvePackage(str(body.servicio), str(body.paquete));
-    if (!event) throw new BookingError('not_reservable', 'Este paquete se coordina por WhatsApp');
+    // Sin escritura permitida o sin almacén compartido: se rechaza antes de llamar a Cal.com
+    if (!event || !online) throw new BookingError('not_reservable', 'Este paquete se coordina por WhatsApp');
 
     const ref = str(body.referencia);
     if (!/^[A-Za-z0-9-]{16,64}$/.test(ref)) fail('referencia', 'Referencia inválida');
@@ -105,6 +134,15 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
     if (body.zonaHoraria !== undefined && body.zonaHoraria !== tz) fail('zonaHoraria', 'Zona horaria distinta');
     const startUtc = T.localToUtc(date, time, tz);
     if (!config.workingDays.includes(T.utcToLocal(startUtc.toISOString(), tz).weekday)) fail('fecha', 'Día sin sesiones');
+
+    // Newborn: solo con el bebé ya nacido y hasta los 3 meses el día de la sesión (BR-08)
+    let birth = null;
+    if (service.requiresBirth) {
+      birth = str(body.nacimiento);
+      const status = BOOKING_DATA.newbornEligibility({ born: body.nacio, birth, session: date, today: T.todayIn(tz, now()) });
+      if (status === 'unborn') fail('nacio', 'Las sesiones Newborn se reservan cuando el bebé ya nació');
+      if (status !== 'ok') fail('nacimiento', status === 'too_old' ? 'El bebé tendrá 4 meses o más el día de la sesión' : 'Fecha de nacimiento inválida');
+    }
 
     // Cantidad de bebés: solo en servicios con regla de bebés (Newborn), y cambia el precio
     const rule = service.babies;
@@ -130,7 +168,7 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
       if (k.length > 60 || String(v).length > 500) fail('detalles', 'Detalle demasiado largo');
     });
 
-    return { service, pkg, event, ref, name, phone, date, time, startUtc, quote, price, deposit, details: entries };
+    return { service, pkg, event, ref, name, phone, date, time, startUtc, quote, price, deposit, birth, details: entries };
   }
 
   const detailText = (entries) => entries.map(([k, v]) => `${k}: ${String(v).trim()}`).join(' · ').slice(0, 500);
@@ -174,7 +212,7 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
         ...(v.quote.babies ? { bebes: String(v.quote.babies), recargoUSD: String(v.quote.surcharge) } : {}),
         whatsapp: v.phone,
         creadaEn: new Date(now()).toISOString(),
-        venceEn: new Date(now() + EXPIRY_HOURS * HOUR).toISOString(),
+        ...(v.birth ? { nacimiento: v.birth } : {}),
         detalles: detailText(v.details),
       },
     };
@@ -231,30 +269,84 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
     reutilizada: reused,
   });
 
+  /* ---------- Sección crítica entre instancias ---------- */
+  // Un bloqueo por fecha: los bloques de 2 h no se solapan entre días, y serializar el día
+  // cubre cualquier solapamiento entre paquetes. Si no se obtiene a tiempo → 'busy' (reintentable).
+  async function withDayLock(date, fn) {
+    const key = `${lockPrefix}:lock:${date}`;
+    const token = crypto.randomUUID();
+    const started = Date.now();
+    for (;;) {
+      let got;
+      try {
+        got = await store.setNx(key, token, lock.ttlMs);
+      } catch (err) {
+        log.error(`[reservas] Almacén no disponible: ${err.message}`);
+        throw new BookingError('busy', 'No se pudo obtener el bloqueo');
+      }
+      if (got) break;
+      if (Date.now() - started > lock.waitMs) throw new BookingError('busy', 'Otra solicitud para ese día está en curso');
+      await sleep(150 + Math.floor(Math.random() * 150));
+    }
+    let keep = false;
+    try {
+      return await fn({ acquiredAt: Date.now(), keepLock: () => { keep = true; } });
+    } finally {
+      const done = keep ? store.expireIfEquals(key, token, lock.uncertainHoldMs) : store.delIfEquals(key, token);
+      await done.catch((err) => log.warn(`[reservas] No se liberó el bloqueo: ${err.message}`));
+    }
+  }
+
+  // Reservas activas (pendientes o aceptadas) de cualquier paquete del sitio que se solapen
+  // con el bloque pedido. Las rechazadas y canceladas no cuentan.
+  async function overlapping(v) {
+    const dayStart = T.localToUtc(v.date, '00:00', tz);
+    const dayEnd = T.localToUtc(T.addDays(v.date, 1), '00:00', tz);
+    const list = await cal.listBookings({
+      eventTypeIds: siteEventIds.join(','),
+      afterStart: dayStart.toISOString(),
+      beforeEnd: dayEnd.toISOString(),
+    });
+    const start = v.startUtc.getTime();
+    const end = start + v.event.durationMinutes * 6e4;
+    return list.filter((b) => b && ACTIVE.has(b.status) && Date.parse(b.start) < end && start < Date.parse(b.end));
+  }
+
   async function doCreate(v) {
     const existing = await findByRef(v);
     if (existing) return result(existing, v, true);
 
-    // Solo se reservan horarios que Cal.com devuelve como libres en este momento
-    const free = await freeSlots(v.event, v.date, v.date);
-    if (!(free[v.date] || []).includes(v.time)) throw new BookingError('slot_taken', 'Horario no disponible');
+    return withDayLock(v.date, async ({ acquiredAt, keepLock }) => {
+      // 1. Otra instancia pudo crearla con esta referencia mientras se esperaba el bloqueo
+      const again = await findByRef(v);
+      if (again) return result(again, v, true);
+      // 2. Ninguna reserva activa de ningún paquete ocupa ese bloque
+      if ((await overlapping(v)).length) throw new BookingError('slot_taken', 'Horario no disponible');
+      // 3. Cal.com sigue ofreciéndolo (incluye bloqueos manuales del calendario conectado)
+      const free = await freeSlots(v.event, v.date, v.date);
+      if (!(free[v.date] || []).includes(v.time)) throw new BookingError('slot_taken', 'Horario no disponible');
+      // Sin margen para crear antes de que caduque el bloqueo: mejor reintentar
+      if (Date.now() - acquiredAt > lock.startCreateBeforeMs) throw new BookingError('busy', 'La comprobación tardó demasiado');
 
-    let created;
-    try {
-      created = await cal.createBooking(calInput(v));
-    } catch (err) {
-      if (!(err instanceof CalApiError)) throw err;
-      if (err.kind === 'conflict' || err.uncertain) {
-        // Pudo crearse en un intento anterior o en este mismo (respuesta perdida)
-        const again = await findByRef(v).catch(() => null);
-        if (again) return result(again, v, true);
-        if (err.kind === 'conflict') throw new BookingError('slot_taken', 'Horario no disponible');
-        throw new BookingError('uncertain', 'No se pudo confirmar si la reserva se creó');
+      // 4. Crear
+      let created;
+      try {
+        created = await cal.createBooking(calInput(v));
+      } catch (err) {
+        if (!(err instanceof CalApiError)) throw err;
+        if (err.kind === 'conflict' || err.uncertain) {
+          // Pudo crearse en un intento anterior o en este mismo (respuesta perdida)
+          const found = await findByRef(v).catch(() => null);
+          if (found) return result(found, v, true);
+          if (err.kind === 'conflict') throw new BookingError('slot_taken', 'Horario no disponible');
+          keepLock();
+          throw new BookingError('uncertain', 'No se pudo confirmar si la reserva se creó');
+        }
+        throw err;
       }
-      throw err;
-    }
-    const verified = await verify(created, v);
-    return result(verified, v, false);
+      const verified = await verify(created, v);
+      return result(verified, v, false);
+    });
   }
 
   async function createBooking(body) {
@@ -265,43 +357,37 @@ function createBookingService({ cal, events = CAL_EVENTS, config = BOOKING_CONFI
     return p;
   }
 
-  /* ---------- Vencimiento de solicitudes pendientes ---------- */
-  // mode: 'off' | 'dry-run' | 'on'. paymentReviewRule: regla para abonos pagados pero sin revisar.
-  // Sin regla definida, 'on' no se permite en producción (ver README).
-  async function expirePending({ mode = 'off', production = false, paymentReviewRule = null } = {}) {
-    const report = { mode, revisadas: 0, vencidas: [], omitidas: [], errores: [] };
-    if (mode === 'off') return report;
-    if (mode !== 'dry-run' && mode !== 'on') throw new BookingError('invalid', `EXPIRATION_MODE desconocido: ${mode}`);
-    if (mode === 'on' && production && !paymentReviewRule) {
-      throw new BookingError('blocked', 'Caducidad bloqueada en producción: falta definir la regla para abonos pendientes de revisión');
-    }
-    const ids = [...new Set(Object.values(events).map((e) => e.eventTypeId))];
-    if (!ids.length) return report;
-
-    const pending = await cal.listBookings({ eventTypeIds: ids.join(','), status: 'unconfirmed' });
+  /* ---------- Recordatorio para Ely (BR-15) ---------- */
+  // Solo lectura: solicitudes creadas por el sitio, aún pendientes y con 24 h o más.
+  // No hay ninguna llamada que confirme, rechace o cancele: Ely decide en Cal.com.
+  async function pendingForReview({ minAgeHours = REVIEW_AFTER_HOURS } = {}) {
+    if (!siteEventIds.length) return [];
+    const list = await cal.listBookings({ eventTypeIds: siteEventIds.join(','), status: 'unconfirmed' });
     const t = now();
-    for (const b of pending) {
-      const meta = b.metadata || {};
-      if (meta.origen !== SOURCE || !meta.ref) { report.omitidas.push({ uid: b.uid, motivo: 'no creada por el sitio' }); continue; }
-      report.revisadas += 1;
-      const due = Date.parse(meta.venceEn) || (Date.parse(b.createdAt) + EXPIRY_HOURS * HOUR);
-      if (!(due <= t)) { report.omitidas.push({ uid: b.uid, motivo: 'dentro del plazo' }); continue; }
-      try {
-        // Estado vigente justo antes de actuar: nunca rechazar una reserva ya confirmada
-        const fresh = await cal.getBooking(b.uid);
-        if (fresh.status !== 'pending') { report.omitidas.push({ uid: b.uid, motivo: `estado actual ${fresh.status}` }); continue; }
-        if (paymentReviewRule && paymentReviewRule(fresh) === 'keep') { report.omitidas.push({ uid: b.uid, motivo: 'abono en revisión' }); continue; }
-        if (mode === 'dry-run') { report.vencidas.push({ uid: b.uid, simulada: true }); continue; }
-        await cal.declineBooking(b.uid, 'Solicitud vencida: no se recibió el abono del 50% en 24 horas.');
-        report.vencidas.push({ uid: b.uid });
-      } catch (err) {
-        report.errores.push({ uid: b.uid, error: err.message });
-      }
-    }
-    return report;
+    return list
+      .filter((b) => b && b.status === 'pending' && (b.metadata || {}).origen === SOURCE)
+      .map((b) => {
+        const meta = b.metadata || {};
+        const created = Date.parse(meta.creadaEn) || Date.parse(b.createdAt);
+        const local = T.utcToLocal(b.start, tz);
+        return {
+          uid: b.uid,
+          creadaEn: new Date(created).toISOString(),
+          horasDesdeSolicitud: Math.floor((t - created) / HOUR),
+          fecha: local.date,
+          hora: local.time,
+          nombre: (b.attendees && b.attendees[0] && b.attendees[0].name) || '',
+          whatsapp: meta.whatsapp || '',
+          servicio: meta.servicio || '',
+          paquete: meta.paquete || '',
+          abonoUSD: meta.abonoUSD || '',
+        };
+      })
+      .filter((r) => r.horasDesdeSolicitud >= minAgeHours)
+      .sort((a, b) => a.creadaEn.localeCompare(b.creadaEn));
   }
 
-  return { getAvailability, createBooking, expirePending, validate, minDate, maxMonth };
+  return { getAvailability, createBooking, pendingForReview, validate, minDate, maxMonth, mode: online ? 'online' : 'whatsapp' };
 }
 
-module.exports = { createBookingService, BookingError, SOURCE, EXPIRY_HOURS, BOOKING_FIELDS };
+module.exports = { createBookingService, BookingError, SOURCE, REVIEW_AFTER_HOURS, BOOKING_FIELDS, LOCK };

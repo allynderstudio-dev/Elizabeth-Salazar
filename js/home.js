@@ -15,16 +15,15 @@
   };
 
   /* ---------- 01 Hero carousel ----------
-     Copy de Figma: Embarazo (slide 1), Newborn (estado 2) y Quince años (estado 4).
-     Familiar, Parejas y Cumpleaños usan el texto de su categoría en "Testigo de tu historia"
-     hasta tener el copy definitivo (ver README). */
+     Copy de Figma: tabla "Slide copy · all 6 slides" (283:3353, 28/10/2026). La línea meta solo
+     se ve en desktop. cta: etiqueta propia cuando no sigue "Ver sesión de …" (slide 3). */
   const SLIDES = [
     { key: 'embarazo', service: 'Embarazo', description: 'Retratos de tu embarazo entre la semana 28 y la 32, en el estudio o en exteriores.', meta: '2 a 3 h · desde US$80' },
     { key: 'newborn', service: 'Newborn', description: 'La ternura de los primeros días, con posado clásico entre el día 8 y el 12 de nacido.', meta: '2 a 3 h · desde US$80' },
-    { key: 'familiar', service: 'Familiar', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', meta: '2 h · US$80' },
+    { key: 'familiar', service: 'Familiar', description: 'Retratos de familia en el estudio, con fondos y escenografía. Tu mascota también puede acompañarlos.', meta: '2 h · US$80', cta: 'Ver sesión Familiar' },
     { key: 'quince-anos', service: 'Quince años', description: 'Estudio, iglesia, exteriores o la cobertura de tu recepción.', meta: '2 a 3 h · desde US$80' },
-    { key: 'parejas', service: 'Parejas', description: 'Sesiones familiares y de pareja en estudio, con fondos y escenografía disponibles.', meta: '2 h · US$80' },
-    { key: 'cumpleanos-infantiles', service: 'Cumpleaños', description: 'Cumpleaños infantiles y de adultos, quince años, revelación de sexo y recepciones.', meta: '2 a 3 h · desde US$70' },
+    { key: 'parejas', service: 'Parejas', description: 'Una sesión para los dos en el estudio, con retratos que celebran su historia juntos.', meta: '2 h · US$80' },
+    { key: 'cumpleanos-infantiles', service: 'Cumpleaños', description: 'Cumpleaños de niñas y niños de 2 a 14 años: en el estudio, con cake smash, temática o en exteriores.', meta: '2 a 3 h · desde US$80' },
   ];
 
   const hero = document.querySelector('.hero');
@@ -87,7 +86,7 @@
         field('meta').textContent = data.meta;
         const cta = field('cta');
         cta.href = `servicio-detalle.html?sesion=${data.key}`;
-        cta.querySelector('span').textContent = `Ver sesión de ${data.service}`;
+        cta.querySelector('span').textContent = data.cta || `Ver sesión de ${data.service}`;
       };
       animate ? crossfade([info], update) : update();
     };

@@ -99,8 +99,15 @@
   background: var(--color-background-dark);
   opacity: 0.25;
 }
-.step-indicator__bar li.is-done,
+/* Figma Step Indicator 24:1158: completado = border/default; actual = interactive/primary con un
+   trazo exterior de 1 px (se ve de 6 px, sin mover el diseño); pendiente = pista clara */
+.step-indicator__bar li.is-done {
+  background: var(--color-border-default);
+  opacity: 1;
+}
 .step-indicator__bar li.is-current {
+  background: var(--color-interactive-primary);
+  box-shadow: 0 0 0 1px var(--color-interactive-primary);
   opacity: 1;
 }
 .booking__heading {
@@ -1354,4 +1361,31 @@ input:checked + .radio-mark::after {
 }
 .notice__action {
   margin-top: var(--spacing-8);
+}
+
+/* Horario no disponible (Figma 257:5898) */
+.conflict-notice {
+  margin-bottom: var(--spacing-24);
+}
+.conflict-notice:focus {
+  outline: none;
+}
+.time-slot__tag {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-feedback-error);
+}
+@media (max-width: 767px) {
+  .conflict-notice__action {
+    width: 100%;
+  }
+}
+
+/* Campo trampa: fuera de la vista y del orden de tabulación */
+.hp-field {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }

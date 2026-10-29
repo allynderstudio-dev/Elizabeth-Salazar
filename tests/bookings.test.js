@@ -21,7 +21,8 @@ test('crea una solicitud pendiente sin correo, con datos propios en metadata', a
   assert.equal(body.metadata.precioUSD, '80');
   assert.equal(body.metadata.abonoUSD, '40');
   assert.equal('bebes' in body.metadata, false);
-  assert.equal(body.metadata.venceEn, '2026-11-03T12:00:00.000Z'); // 24 h desde la creación
+  assert.equal(body.metadata.creadaEn, '2026-11-02T12:00:00.000Z');
+  assert.equal('venceEn' in body.metadata, false, 'sin vencimiento: las solicitudes no caducan');
   assert.ok(Object.keys(body.metadata).every((k) => k.length <= 40));
   assert.ok(Object.values(body.metadata).every((v) => typeof v === 'string' && v.length <= 500));
 
@@ -57,7 +58,7 @@ test('con la pregunta "servicio" configurada, también envía el servicio para e
 test('Newborn: cada bebé adicional suma US$20 y el servidor lo valida', async () => {
   const { setup: _s, EVENTS } = require('./helpers/setup.js');
   const { service, fake } = _s({ events: { ...EVENTS, 'newborn/sesion-newborn': EVENTS['embarazo/estudio'] } });
-  const newborn = (over) => request({ servicio: 'newborn', paquete: 'sesion-newborn', detalles: { 'Cantidad de bebés': 2 }, ...over });
+  const newborn = (over) => request({ servicio: 'newborn', paquete: 'sesion-newborn', nacio: 'Sí', nacimiento: '2026-10-10', detalles: { 'Cantidad de bebés': 2 }, ...over });
   const code = async (over) => service.createBooking(newborn(over)).then(() => 'ok', (err) => `${err.code}:${err.field || ''}`);
   assert.equal(await code({ precio: 80, abono: 40 }), 'invalid:bebes'); // falta la cantidad
   assert.equal(await code({ precio: 80, abono: 40, bebes: 4 }), 'invalid:bebes'); // máximo 3
@@ -159,7 +160,8 @@ test('respuesta perdida tras crear: se recupera la reserva existente sin duplica
 });
 
 test('fallo de red sin crear: "uncertain" y el reintento crea una sola vez', async () => {
-  const { service, fake } = setup();
+  const { LOCK } = require('../api/_lib/booking-service.js');
+  const { service, fake } = setup({ service: { lock: { ...LOCK, uncertainHoldMs: 50 } } });
   fake.inject({ method: 'POST', path: /^\/v2\/bookings$/, kind: 'network' });
   await assert.rejects(service.createBooking(request()), (err) => err.code === 'uncertain');
   assert.equal(fake.bookings.length, 0);
@@ -171,7 +173,8 @@ test('fallo de red sin crear: "uncertain" y el reintento crea una sola vez', asy
 test('5xx al crear y búsqueda posterior caída: "uncertain", nunca éxito', async () => {
   const { service, fake } = setup();
   fake.inject({ method: 'POST', path: /^\/v2\/bookings$/, kind: 503 });
-  fake.inject({ method: 'GET', path: /^\/v2\/bookings$/, kind: 'network', skip: 1 });
+  // Listas: referencia antes del bloqueo, referencia y solapamientos dentro; falla la búsqueda posterior
+  fake.inject({ method: 'GET', path: /^\/v2\/bookings$/, kind: 'network', skip: 3 });
   await assert.rejects(service.createBooking(request()), (err) => err.code === 'uncertain');
 });
 

@@ -32,7 +32,7 @@
   max-width: 600px;
 }
 
-/* ---------- 02 Mi historia ---------- */
+/* ---------- 02 Mi historia (Figma 56:2039): intro + filas de experiencia y formación ---------- */
 .story {
   padding-top: var(--spacing-48);
 }
@@ -46,14 +46,42 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-24);
+}
+.story__titles {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-12);
 }
 .story__title {
   color: var(--color-text-primary);
 }
-.story__body {
+.story__lead {
+  color: var(--color-text-secondary);
+}
+.story__facts {
   flex: 1 1 0;
   min-width: 0;
+  margin: 0;
+  border-bottom: var(--border-width-default) solid var(--color-border-default);
+}
+.story__fact {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-40);
+  padding: var(--spacing-24) 0;
+  border-top: var(--border-width-default) solid var(--color-border-default);
+}
+.story__fact-label {
+  width: 160px;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+.story__fact-text {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text-primary);
 }
 
 /* ---------- 03 Filosofía ---------- */
@@ -88,28 +116,7 @@
   color: var(--color-text-primary);
 }
 
-/* ---------- 04 Experiencia ---------- */
-.experience__inner {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-40);
-}
-.fact {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-8);
-}
-.fact__value {
-  color: var(--color-text-primary);
-  white-space: nowrap;
-}
-
-/* ---------- 05 Detrás de cámaras ---------- */
-.bts {
-  padding-top: var(--spacing-48);
-}
+/* ---------- 04 Detrás de cámaras ---------- */
 .bts__inner {
   display: flex;
   flex-direction: column;
@@ -132,7 +139,7 @@
   aspect-ratio: 4 / 5;
 }
 
-/* ---------- 06 CTA ---------- */
+/* ---------- 05 CTA ---------- */
 .about-cta__inner {
   display: flex;
   flex-direction: column;
@@ -185,12 +192,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--spacing-40);
   }
-  .experience__inner {
-    gap: var(--spacing-24);
-  }
-  .fact__value {
-    white-space: normal;
-  }
   .bts__photos {
     gap: var(--spacing-24);
   }
@@ -218,24 +219,38 @@
     width: 100%;
   }
 
-  /* 02 Mi historia */
+  /* 02 Mi historia (Figma 56:2244) */
   .story {
     padding-top: var(--spacing-24);
   }
   .story__inner {
-    gap: var(--spacing-12);
+    gap: var(--spacing-32);
   }
   .story__heading {
+    gap: var(--spacing-16);
+  }
+  .story__titles {
     gap: var(--spacing-8);
   }
   .story__title.t-h2 {
     font-size: 26px;
     line-height: 34px;
   }
-  .story__body {
-    display: flex;
+  .story__lead.t-body-lg,
+  .story__fact-text.t-body-lg {
+    font-size: 16px;
+    line-height: 26px;
+  }
+  .story__facts {
+    width: 100%;
+  }
+  .story__fact {
     flex-direction: column;
-    gap: var(--spacing-12);
+    gap: var(--spacing-8);
+    padding: var(--spacing-16) 0;
+  }
+  .story__fact-label {
+    width: auto;
   }
 
   /* 03 Filosofía */
@@ -262,20 +277,7 @@
     padding-top: 0;
   }
 
-  /* 04 Experiencia */
-  .experience__inner {
-    flex-direction: column;
-    gap: var(--spacing-24);
-  }
-  .fact {
-    width: 100%;
-    gap: var(--spacing-4);
-  }
-
-  /* 05 Detrás de cámaras */
-  .bts {
-    padding-top: var(--spacing-24);
-  }
+  /* 04 Detrás de cámaras */
   .bts__inner {
     gap: var(--spacing-32);
   }
@@ -288,7 +290,7 @@
     width: 100%;
   }
 
-  /* 06 CTA: alineado a la izquierda, botones a todo el ancho */
+  /* 05 CTA: alineado a la izquierda, botones a todo el ancho */
   .about-cta__inner {
     align-items: stretch;
     gap: var(--spacing-16);

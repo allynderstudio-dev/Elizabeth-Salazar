@@ -36,7 +36,8 @@
     },
     {
       slug: 'newborn', name: 'Newborn', category: 'embarazo-y-bebe', form: 'newborn',
-      phrase: 'tu sesión newborn', babies: EXTRA_BABIES,
+      phrase: 'tu sesión newborn', babies: EXTRA_BABIES, requiresBirth: true,
+      notice: { title: 'Sesión Newborn', body: 'Reserva cuando tu bebé ya haya nacido. Las sesiones Newborn son para bebés de hasta 3 meses.' },
       packages: [
         { slug: 'sesion-newborn', name: 'Sesión Newborn', price: 80, place: 'estudio', details: '2 h · 6 fotos digitales' },
         { slug: 'sesion-retrato', name: 'Sesión + Retrato', price: 140, place: 'estudio', details: '2 a 3 h · 6 fotos digitales' },
@@ -130,7 +131,25 @@
     return { base: pkg.price, babies: rule ? count : null, extra, surcharge, total: pkg.price + surcharge };
   };
 
-  const BOOKING_DATA = { CATEGORIES, SERVICES, quote };
+  // Suma meses de calendario a 'AAAA-MM-DD'; si el día no existe en el mes de destino,
+  // usa el último (31/10 + 4 meses → 28/02)
+  const addCalendarMonths = (iso, n) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const last = new Date(Date.UTC(y, m - 1 + n + 1, 0)).getUTCDate();
+    const dt = new Date(Date.UTC(y, m - 1 + n, Math.min(d, last)));
+    return dt.toISOString().slice(0, 10);
+  };
+
+  // Newborn solo después del nacimiento y hasta los 3 meses EL DÍA DE LA SESIÓN (Ely, 28/10/2026).
+  // → 'unborn' | 'invalid' (falta o es posterior a hoy) | 'too_old' | 'ok'
+  const NEWBORN_MAX_MONTHS = 4; // elegible mientras sesión < nacimiento + 4 meses
+  const newbornEligibility = ({ born, birth, session, today }) => {
+    if (born !== 'Sí') return 'unborn';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birth || '') || birth > today) return 'invalid';
+    return session < addCalendarMonths(birth, NEWBORN_MAX_MONTHS) ? 'ok' : 'too_old';
+  };
+
+  const BOOKING_DATA = { CATEGORIES, SERVICES, quote, addCalendarMonths, newbornEligibility };
   // El navegador lo usa como global; el backend (api/_lib) lo importa para validar precios.
   if (typeof window !== 'undefined') window.BOOKING_DATA = BOOKING_DATA;
   if (typeof module !== 'undefined' && module.exports) module.exports = BOOKING_DATA;

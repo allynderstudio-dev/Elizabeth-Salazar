@@ -124,6 +124,16 @@
 
             <!-- Paso 3 · Fecha y hora -->
             <div class="booking__panel" data-panel="3" hidden>
+              <!-- Horario no disponible (Figma 257:5967 / 257:6051) -->
+              <div class="notice notice--important conflict-notice" data-conflict="slots" tabindex="-1" role="alert" hidden>
+                <span class="notice__bar" aria-hidden="true"></span>
+                <div class="notice__content"><span class="notice__icon"><img src="assets/icons/alert.svg" alt="" width="20" height="20"></span>
+                  <div class="notice__text">
+                    <p class="notice__title">Horario no disponible</p>
+                    <p class="notice__body">Este horario acaba de dejar de estar disponible. Selecciona otra hora para continuar. Tu sesión, tu paquete y tus datos se mantienen.</p>
+                  </div>
+                </div>
+              </div>
               <div class="date-time">
                 <div class="calendar" data-calendar>
                   <div class="calendar__header">
@@ -175,6 +185,11 @@
                     <h2 class="form-group__title" id="datos-contacto">Tus datos de contacto</h2>
                     <p class="form-group__note">Ambos campos son obligatorios.</p>
                   </div>
+                  <!-- Campo trampa para envíos automáticos: oculto para las personas -->
+                  <div class="hp-field" aria-hidden="true">
+                    <label for="sitio-web">No completes este campo</label>
+                    <input id="sitio-web" name="sitio_web" type="text" tabindex="-1" autocomplete="off">
+                  </div>
                   <div class="form-row">
                     <div class="field">
                       <label class="field__label" for="nombre">Nombre completo <span class="field__required" aria-hidden="true">*</span></label>
@@ -204,13 +219,24 @@
 
             <!-- Paso 5 · Revisión -->
             <div class="booking__panel" data-panel="5" hidden>
+              <!-- Horario no disponible al enviar (Figma 257:5914 / 257:6003): reemplaza el envío -->
+              <div class="notice notice--important conflict-notice" data-conflict="review" tabindex="-1" role="alert" hidden>
+                <span class="notice__bar" aria-hidden="true"></span>
+                <div class="notice__content"><span class="notice__icon"><img src="assets/icons/alert.svg" alt="" width="20" height="20"></span>
+                  <div class="notice__text">
+                    <p class="notice__title">Horario no disponible</p>
+                    <p class="notice__body">Este horario acaba de dejar de estar disponible. Selecciona otra hora para continuar. Tu sesión, tu paquete y tus datos se mantienen.</p>
+                    <p class="notice__action"><button class="btn btn--primary conflict-notice__action" type="button" data-conflict-pick>Elegir otro horario</button></p>
+                  </div>
+                </div>
+              </div>
               <div class="summary-card summary-card--review" data-summary="review"></div>
 
               <section class="policies" aria-labelledby="politicas-titulo">
                 <h2 class="policies__title" id="politicas-titulo">Políticas de reserva</h2>
                 <div class="policy">
                   <h3 class="policy__title"><img src="assets/icons/tag.svg" alt="" width="24" height="24">Reservaciones</h3>
-                  <p class="policy__text">Tu horario queda apartado provisionalmente cuando tu solicitud queda registrada. Para confirmar tu sesión, debes realizar un abono del 50% del valor total dentro de las 24 horas siguientes. Si no recibimos el abono en ese plazo, la solicitud puede cancelarse y el horario vuelve a estar disponible.</p>
+                  <p class="policy__text">Para confirmar tu sesión, debes realizar un abono del 50% dentro de las 24 horas posteriores a tu solicitud. El horario permanecerá apartado mientras Ely gestiona la reserva.</p>
                 </div>
                 <div class="policy">
                   <h3 class="policy__title"><img src="assets/icons/clock.svg" alt="" width="24" height="24">Puntualidad</h3>
@@ -247,7 +273,7 @@
                 <p class="status-badge"><img src="assets/icons/tag-warning.svg" alt="" width="16" height="16"><span data-copy="badge">Pendiente de envío</span></p>
                 <h2 class="status-card__title" data-copy="statusTitle">Envía tu solicitud por WhatsApp</h2>
                 <p class="status-card__text" data-copy="statusText">Aún no está registrada ni es una reserva confirmada; se completa al enviar el mensaje.</p>
-                <p class="status-card__meta" data-status-meta>Abono requerido: US$40</p>
+                <p class="status-card__meta" data-status-meta>Abono requerido: US$40 (50% del total).</p>
                 <a class="btn btn--primary" href="https://wa.me/584126463929" target="_blank" rel="noopener" data-whatsapp-link aria-label="Continuar por WhatsApp, se abre en otra app">
                   <img src="assets/icons/whatsapp-inverse.svg" alt="" width="20" height="20">
                   <span>Continuar por WhatsApp</span>
@@ -260,8 +286,8 @@
                 <h2 class="checklist__title" id="proximos-titulo">Próximos pasos</h2>
                 <ul class="feature-list">
                   <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="next1">Envía el mensaje por WhatsApp y realiza el abono de US$40 (50%) en las próximas 24 horas.</span></li>
-                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span>Coordina el pago con Ely por WhatsApp.</span></li>
-                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span>Ely verificará tu abono y confirmará tu sesión.</span></li>
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="next2">Coordina con Ely el método de pago del abono de US$40.</span></li>
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span>Recibirás la confirmación de tu sesión por WhatsApp.</span></li>
                 </ul>
               </section>
 

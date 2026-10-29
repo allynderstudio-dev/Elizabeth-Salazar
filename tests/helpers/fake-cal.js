@@ -5,7 +5,11 @@ const CARACAS = '-04:00'; // Venezuela no usa horario de verano desde 2016
 const STARTS = ['08:00', '10:00', '14:00', '16:00'];
 const VERSIONS = { slots: '2024-09-04', booking: '2026-02-25', list: '2026-05-01' };
 
-function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'), apiKey = 'cal_test_key', pageSize = 100 } = {}) {
+// enforce: false → Cal.com NO rechaza choques ni descuenta reservas de /v2/slots (peor caso:
+// prueba que lo que evita duplicados es el sitio, no Cal.com). calendarBusy: bloqueos manuales
+// del calendario conectado [{ start, end }] que /v2/slots descuenta (BR-16).
+function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'), apiKey = 'cal_test_key', pageSize = 100, enforce = true, latencyMs = 0 } = {}) {
+  const calendarBusy = [];
   const bookings = [];
   const calls = [];
   const faults = [];
@@ -15,7 +19,8 @@ function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'),
   const error = (status, message) => json(status, { status: 'error', error: { message } });
   const blocks = (b) => b.status === 'pending' || b.status === 'accepted';
   const overlaps = (s1, e1, s2, e2) => s1 < e2 && s2 < e1;
-  const busy = (start, end) => bookings.some((b) => blocks(b) && overlaps(start, end, Date.parse(b.start), Date.parse(b.end)));
+  const busy = (start, end) => enforce && bookings.some((b) => blocks(b) && overlaps(start, end, Date.parse(b.start), Date.parse(b.end)));
+  const manual = (start, end) => calendarBusy.some((c) => overlaps(start, end, Date.parse(c.start), Date.parse(c.end)));
 
   // Falla inyectada: { method, path (regex), kind: 'network' | 'commit-then-network' | 'override' | status, once, skip }
   function inject(fault) { faults.push({ once: true, ...fault }); }
@@ -41,7 +46,7 @@ function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'),
       STARTS.forEach((t) => {
         const start = Date.parse(`${date}T${t}:00${CARACAS}`);
         const end = start + ev.duration * 6e4;
-        if (start < from || start > to || start <= now() || busy(start, end)) return;
+        if (start < from || start > to || start <= now() || busy(start, end) || manual(start, end)) return;
         const fmt = (ms) => `${new Date(ms - 4 * 36e5).toISOString().slice(0, 19)}.000${CARACAS}`;
         (data[date] = data[date] || []).push({ start: fmt(start), end: fmt(end) });
       });
@@ -84,7 +89,15 @@ function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'),
     return json(200, { status: 'success', data: page, pagination: { hasMore: next < out.length, nextCursor: next < out.length ? String(next) : null } });
   }
 
+  // Cambios que hace Ely en Cal.com (aceptar, rechazar, cancelar)
+  function setStatus(uid, status) {
+    const b = bookings.find((x) => x.uid === uid);
+    if (!b) throw new Error(`Reserva desconocida ${uid}`);
+    b.status = status;
+  }
+
   async function fetch(input, init = {}) {
+    if (latencyMs) await new Promise((r) => setTimeout(r, latencyMs));
     const url = new URL(String(input));
     const method = init.method || 'GET';
     const headers = init.headers || {};
@@ -130,7 +143,7 @@ function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'),
     return error(404, 'Not found');
   }
 
-  return { fetch, bookings, calls, inject, apiKey };
+  return { fetch, bookings, calls, inject, apiKey, setStatus, calendarBusy };
 }
 
 module.exports = { createFakeCal };

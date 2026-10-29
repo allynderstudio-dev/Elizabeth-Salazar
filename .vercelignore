@@ -1,3 +1,6 @@
 # No se publican en el sitio: pruebas y herramientas locales
 tests/
 tools/
+# Plantilla de temporada sin aprobar: no hay páginas individuales de temporada (BR-11)
+temporada-detalle.html
+js/temporada-detalle.js

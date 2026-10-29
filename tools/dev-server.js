@@ -49,7 +49,7 @@ if (require.main === module) {
   const server = createServer({
     '/api/availability': require('../api/availability.js'),
     '/api/bookings': require('../api/bookings.js'),
-    '/api/cron/expire-requests': require('../api/cron/expire-requests.js'),
+    '/api/cron/review-reminder': require('../api/cron/review-reminder.js'),
   });
   server.listen(PORT, () => console.log(`Sitio + /api en http://localhost:${PORT}`));
 }

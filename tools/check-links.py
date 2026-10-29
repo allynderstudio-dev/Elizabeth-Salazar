@@ -10,8 +10,12 @@ from urllib.parse import urlparse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ATTR = re.compile(r'''(?:href|src|srcset|content)=["']([^"']+)["']''')
+# Archivos que no se publican (.vercelignore): ninguna página publicada puede enlazarlos
+IGNORED = {l.strip().rstrip('/') for l in (ROOT / '.vercelignore').read_text(encoding='utf-8').splitlines() if l.strip() and not l.startswith('#')}
 missing = []
 for page in sorted(ROOT.glob('*.html')):
+    if page.name in IGNORED:
+        continue
     text = page.read_text(encoding='utf-8')
     for ref in ATTR.findall(text):
         for part in ref.split(','):
@@ -23,6 +27,8 @@ for page in sorted(ROOT.glob('*.html')):
             path = ROOT / urlparse(url).path
             if not path.exists():
                 missing.append(f'{page.name}: {url}')
+            elif urlparse(url).path.lstrip('./') in IGNORED:
+                missing.append(f'{page.name}: {url} (no se publica, ver .vercelignore)')
 for css in (ROOT / 'css').glob('*.css'):
     for url in re.findall(r'url\(([^)]+)\)', css.read_text(encoding='utf-8')):
         url = url.strip('\'"')

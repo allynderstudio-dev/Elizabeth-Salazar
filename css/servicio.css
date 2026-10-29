@@ -387,7 +387,19 @@
   vertical-align: 1px;
 }
 
-/* Recomendaciones con etiqueta (Embarazo) */
+/* Recomendaciones con etiqueta (Embarazo, Figma 49:2382): «Lo que incluye» en un tercio y
+   las 8 recomendaciones en rejilla de 2 columnas, etiqueta sobre el texto, sin iconos */
+.sd-checklists--recs .sd-checklist:first-child {
+  flex: 0 0 calc((100% - var(--spacing-80)) / 3);
+}
+.sd-checklists--recs .sd-checklist:last-child {
+  flex: 1 1 0;
+}
+.sd-recs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-24) var(--spacing-40);
+}
 .sd-rec {
   display: flex;
   flex-direction: column;
@@ -395,6 +407,14 @@
 }
 .sd-rec__label {
   font-weight: 600;
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--color-text-primary);
+}
+.sd-rec__text {
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--color-text-secondary);
 }
 
 /* ---------- 06 Lo que incluye + 07 Antes de tu sesión ---------- */
@@ -706,6 +726,13 @@
   .sd-wardrobe__inner {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--spacing-48);
+  }
+  .sd-recs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sd-checklists--recs .sd-checklist:first-child,
+  .sd-checklists--recs .sd-checklist:last-child {
+    flex: none;
   }
 
   /* 06 + 07 */

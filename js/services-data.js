@@ -63,7 +63,7 @@
   const EXTRA_BABY = 'Bebé adicional: US$20 cada uno';
   const ON_TIME = 'Llega puntual: tienes 15 minutos de tolerancia.';
   const DEPOSIT_CONFIRM = 'Tu fecha se confirma con el abono del 50%.';
-  const TRANSFER = 'Traslado: US$30, si aplica';
+  const TRANSFER = 'Recargo por traslado: US$30, si aplica.';
   const STUDIO_SETS = 'Fondos y escenografía del estudio';
 
   const SERVICES = {
