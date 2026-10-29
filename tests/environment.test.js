@@ -23,7 +23,7 @@ test('T-ENV-02: fuera de producción sin cuenta de prueba → solo lectura; crea
   }
   const { service, fake } = setup({ service: { canWrite: false } });
   await assert.rejects(service.createBooking(request()), (err) => err.code === 'not_reservable');
-  assert.deepEqual(await service.getAvailability({ servicio: 'embarazo', paquete: 'estudio', mes: '2026-11' }), { reservable: false });
+  assert.deepEqual(await service.getAvailability({ servicio: 'embarazo', paquete: 'estudio', mes: '2026-11' }), { reservable: false, motivo: 'reservas_desactivadas' });
   assert.equal(fake.calls.length, 0);
 
   // Segunda barrera: el cliente de Cal.com tampoco escribe
@@ -35,7 +35,7 @@ test('T-ENV-02: fuera de producción sin cuenta de prueba → solo lectura; crea
 
 test('producción sin almacén compartido → modo WhatsApp (no puede garantizar que no haya duplicados)', async () => {
   const { service, fake } = setup({ store: null });
-  assert.deepEqual(await service.getAvailability({ servicio: 'embarazo', paquete: 'estudio', mes: '2026-11' }), { reservable: false });
+  assert.deepEqual(await service.getAvailability({ servicio: 'embarazo', paquete: 'estudio', mes: '2026-11' }), { reservable: false, motivo: 'reservas_desactivadas' });
   await assert.rejects(service.createBooking(request()), (err) => err.code === 'not_reservable');
   assert.equal(fake.calls.length, 0);
 });

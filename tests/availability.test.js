@@ -36,7 +36,7 @@ test('solapamiento entre paquetes de distinta duración', async () => {
 test('paquete sin evento de Cal.com: reservable=false y sin llamadas a la API', async () => {
   const { service, fake } = setup();
   const out = await service.getAvailability({ servicio: 'newborn', paquete: 'sesion-newborn', mes: '2026-11' });
-  assert.deepEqual(out, { reservable: false });
+  assert.deepEqual(out, { reservable: false, motivo: 'sin_evento' });
   assert.equal(fake.calls.length, 0);
 });
 

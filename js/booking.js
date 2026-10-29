@@ -1184,8 +1184,9 @@
       // decide el modo y descarta horarios que ya no estén libres.
       if (step > 3 && state.date) state.viewMonth = monthKey(state.date);
       if (!state.viewMonth) state.viewMonth = state.date ? monthKey(state.date) : MIN_MONTH;
-      // Al entrar al paso 3 se vuelve a pedir el mes: Ely puede haber bloqueado horas en su calendario
-      if (step === 3) availabilityCache.delete(cacheKey(state.viewMonth));
+      // Al entrar al paso 3 se descarta TODA la disponibilidad guardada: otra solicitud (de
+      // cualquier servicio) o un bloqueo manual de Ely pudo ocupar horarios desde que se consultó
+      if (step === 3) availabilityCache.clear();
       await loadMonth();
       if (state.date && state.time && !slotFree(state.date, state.time)) {
         state.conflict = { date: state.date, time: state.time };
@@ -1254,7 +1255,7 @@
     if (result.ok) {
       const b = result.booking;
       state.booking = { referencia: b.referencia, uid: b.uid, estado: b.estado };
-      availabilityCache.delete(monthCache); // ese horario ya no está libre
+      availabilityCache.clear(); // ese horario ya no está libre para ningún servicio
       await goTo('success');
       store.clear();
       return;

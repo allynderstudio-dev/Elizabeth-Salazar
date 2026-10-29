@@ -116,3 +116,26 @@ test('bloqueo manual en el calendario conectado (BR-16): Cal.com deja de ofrecer
   const d = await service.getAvailability({ servicio: 'embarazo', paquete: 'estudio', mes: '2026-11' });
   assert.deepEqual(d.dias['2026-11-20'], ['08:00', '10:00', '14:00', '16:00']);
 });
+
+test('T-DB-13 (simulado): una solicitud enviada bloquea su bloque para cualquier otro servicio', async () => {
+  const { instance, fake } = setup({ events: ALL_120, enforce: false });
+  const a = instance();
+  const b = instance();
+  // 1–2. Servicio A a las 08:00: uid verificado y una reserva pendiente
+  const out = await a.createBooking(request({ referencia: 'ref-servicio-a-0001', hora: '08:00', fecha: '2026-11-20' }));
+  assert.equal(out.estado, 'pendiente');
+  assert.equal(fake.bookings.length, 1);
+  // 3–4. Otro servicio, otra instancia: las 08:00 ya no se ofrecen
+  // (enforce:false: Cal.com simulado NO las quita; aquí debe hacerlo Cal.com real con la pendiente)
+  // 5–6. Una solicitud directa del servicio B a las 08:00 → slot_taken
+  await assert.rejects(b.createBooking(newbornRequest({ referencia: 'ref-servicio-b-0001', hora: '08:00', fecha: '2026-11-20' })), (err) => err.code === 'slot_taken');
+  // 7. Exactamente una reserva activa
+  assert.equal(active(fake).length, 1);
+});
+
+test('T-DB-13: con Cal.com que descuenta pendientes, el otro servicio ya no ve el horario', async () => {
+  const { instance } = setup({ events: ALL_120 });
+  await instance().createBooking(request({ referencia: 'ref-servicio-a-0002', hora: '08:00', fecha: '2026-11-20' }));
+  const d = await instance().getAvailability({ servicio: 'newborn', paquete: 'sesion-newborn', mes: '2026-11' });
+  assert.deepEqual(d.dias['2026-11-20'], ['10:00', '14:00', '16:00']);
+});

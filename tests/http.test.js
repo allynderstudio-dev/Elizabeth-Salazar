@@ -57,7 +57,7 @@ test('errores HTTP sin filtrar detalles internos', async (t) => {
   assert.deepEqual(await res.json(), { error: 'price_changed', precio: 80, abono: 40 });
 
   res = await fetch(`${srv.base}/api/availability?servicio=newborn&paquete=sesion-newborn&mes=2026-11`);
-  assert.deepEqual(await res.json(), { reservable: false });
+  assert.deepEqual(await res.json(), { reservable: false, motivo: 'sin_evento' });
 
   fake.inject({ method: 'GET', path: /\/v2\/slots/, kind: 500 });
   res = await fetch(`${srv.base}/api/availability?servicio=embarazo&paquete=estudio&mes=2026-11`);

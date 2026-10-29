@@ -99,7 +99,9 @@ function createBookingService({
   async function getAvailability({ servicio, paquete, mes }) {
     if (!T.isMonth(mes)) throw new BookingError('invalid', 'Mes inválido', { field: 'mes' });
     const { event } = resolvePackage(servicio, paquete);
-    if (!event || !online) return { reservable: false };
+    // motivo: 'sin_evento' (paquete sin Cal.com) o 'reservas_desactivadas' (sin escritura o sin
+    // almacén compartido: el sitio pasa a modo WhatsApp y no aparta nada; ver npm run live:check)
+    if (!event || !online) return { reservable: false, motivo: event ? 'reservas_desactivadas' : 'sin_evento' };
     const first = minDate().slice(0, 7);
     if (mes < first || mes > maxMonth()) return { reservable: true, duracionMinutos: event.durationMinutes, dias: {} };
     const dias = await freeSlots(event, `${mes}-01`, T.lastDayOfMonth(mes));

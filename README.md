@@ -216,7 +216,10 @@ npm run dev        # sitio + /api en http://localhost:8080 (modo read-only salvo
 npm test           # pruebas automatizadas (Cal.com simulado, sin red)
 npm run check      # enlaces + pruebas
 npm run cal:check -- --test   # cuenta de prueba aislada: solo lectura
+npm run live:check            # sitio publicado: ¿cada paquete reserva en línea? (solo GET, T-DB-14)
 ```
+
+**Modo WhatsApp en producción = el sitio no aparta horarios.** Si `live:check` muestra `reservas_desactivadas`, falta el almacén compartido (`KV_REST_API_URL` / `KV_REST_API_TOKEN`): las solicitudes no se registran en Cal.com y el mismo horario sigue ofreciéndose a todos los servicios. El sitio lo dice al cliente ("Pendiente de envío", "Aún no está registrada"), y el log de Vercel lo registra como error al arrancar.
 
 El Cal.com simulado (`tests/helpers/fake-cal.js`) puede **no** hacer cumplir los choques (`enforce: false`). Así `tests/concurrency.test.js` prueba que lo que evita duplicados es el sitio: sin el bloqueo, la misma prueba crea dos reservas.
 
@@ -232,7 +235,13 @@ Hechas con la cuenta real (evento 7600420, 22/10/2026, antes de las reglas actua
 - [x] `attendee.phoneNumber` llena el teléfono del evento; el `metadata` se guarda y vuelve.
 - [x] Confirmar en Cal.com: pasa a aceptada y queda en Google Calendar.
 
+Lectura del 28/10/2026 (sin crear nada): las dos reservas de prueba del 28/11 (14:00 y 16:00, "PRUEBA WEB – rechazar") están **aceptadas** en el evento 7652774 y `/v2/slots` ya no ofrece esas horas: Cal.com descuenta las **aceptadas**. Que descuente las **pendientes** de 7652774 solo se comprobó con el evento antiguo 7600420.
+
+Reproducción de Dylan (28/10/2026: tras enviar, otro servicio seguía ofreciendo la misma hora): desde el despliegue de `6138ad5`, producción responde `reservable: false` en los 23 paquetes (modo WhatsApp, nada se registra), lo que produce exactamente ese síntoma. No se sabe si la prueba fue antes o después de ese despliegue, ni qué pantalla final vio ("Pendiente de envío" = modo WhatsApp).
+
 Pendientes, **solo en una cuenta de prueba aislada** (no hay credenciales todavía):
+- [ ] T-DB-13: solicitud del servicio A con `uid` verificado; el servicio B ya no ve la hora (página nueva y misma pestaña); un POST directo del servicio B responde `409 slot_taken`; una sola reserva activa. Repetir con dos servicios a la vez. (Simulado: `tests/concurrency.test.js`.)
+- [ ] T-DB-14: `npm run live:check` con todos los paquetes "en línea", después de configurar Redis en producción.
 - [ ] Rechazar y cancelar liberan el horario; aceptar lo mantiene; una pendiente bloquea otro servicio (T-LC-04 a T-LC-07).
 - [ ] Creaciones en paralelo, solape con pendiente y con aceptada, y la respuesta real de Cal.com ante un choque (T-DB-12). Actualizar `CONFLICT_PATTERN` si hace falta.
 - [ ] `GET /v2/bookings` sin filtro de estado devuelve también las pendientes (la comprobación de solapes lo supone).

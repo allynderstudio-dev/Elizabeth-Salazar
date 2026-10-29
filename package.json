@@ -2,11 +2,14 @@
   "name": "ely-salazar-web",
   "private": true,
   "description": "Sitio estático de Ely Salazar + funciones /api para reservas con Cal.com",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node tools/dev-server.js",
     "test": "node --test tests/*.test.js",
     "check": "python3 tools/check-links.py && node --test tests/*.test.js",
-    "cal:check": "node tools/cal-check.js"
+    "cal:check": "node tools/cal-check.js",
+    "live:check": "node tools/live-check.js"
   }
 }
