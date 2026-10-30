@@ -1,7 +1,8 @@
 // Navegación: página actual (aria-current) y menú móvil
 (() => {
-  // data-nav en <body> marca la sección actual en páginas de detalle (p. ej. servicio-detalle → servicios.html)
-  const page = document.body.dataset.nav || location.pathname.split('/').pop() || 'index.html';
+  // Ruta actual como URL limpia (/servicios, / para Inicio; también si se llega por la .html antigua).
+  // data-nav en <body> marca la sección actual en páginas de detalle (p. ej. servicio-detalle → /servicios)
+  const page = document.body.dataset.nav || location.pathname.replace(/\.html$/, '').replace(/\/index$/, '/');
 
   document.querySelectorAll('.site-nav .nav-link, .mobile-menu .nav-link, .site-footer .nav-link').forEach((link) => {
     const href = link.getAttribute('href');

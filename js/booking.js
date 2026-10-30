@@ -1,5 +1,5 @@
 // Reservar: flujo de 5 pasos + pantalla final.
-// Navegación con historial (?paso=N), validación, formularios condicionales por servicio,
+// Navegación con historial (una sola URL, /reservar), validación, formularios condicionales por servicio,
 // abono del 50 %, resumen, barra de acciones sticky y borrador en sessionStorage.
 // Dos modos por paquete:
 //  - "live": el paquete tiene evento de Cal.com (lo decide el backend). Solo se ofrecen
@@ -580,7 +580,7 @@
       // Bloquea el paso si el bebé tendrá 4 meses o más el día de la sesión
       { type: 'gate', name: 'elegible', title: 'Sesión Newborn no disponible',
         body: 'Las sesiones Newborn están disponibles para bebés de hasta 3 meses. A partir del cuarto mes, te recomendamos nuestra sesión Mes a Mes.',
-        action: { label: 'Ver sesión Mes a Mes', href: 'servicio-detalle.html?sesion=mes-a-mes' },
+        action: { label: 'Ver sesión Mes a Mes', href: '/servicio-detalle?sesion=mes-a-mes' },
         when: (d) => d.nacio === 'Sí' && Boolean(babyAge(d.nacimiento)) && !babyAge(d.nacimiento).eligible },
       { type: 'notice', when: (d) => d.nacio !== 'No', title: 'Edad de tu bebé', body: 'Las sesiones Newborn son para bebés de hasta 3 meses. El posado clásico es entre el día 8 y el 12 de nacido; si tu bebé tiene más de 15 días, prepararemos una sesión adecuada a su edad.' },
     ],
@@ -1199,8 +1199,10 @@
     renderAll();
     if (slotLost && step === 3) $('[data-conflict="slots"]').focus({ preventScroll: true });
     store.save();
+    // Una sola URL (/reservar) para los 5 pasos: el paso va en history.state (atrás/adelante) y en el
+    // borrador (recarga). Se quita el ?paso= que traen los enlaces antiguos; init() ya lo leyó.
     const url = new URL(location.href);
-    url.searchParams.set('paso', step === 'success' ? 'listo' : String(step));
+    url.searchParams.delete('paso');
     if (push) depth += 1;
     if (push) history.pushState({ step, depth }, '', url); else history.replaceState({ step, depth }, '', url);
     if (focus) {

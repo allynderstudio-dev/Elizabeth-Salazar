@@ -52,7 +52,7 @@
     chip.addEventListener('click', () => setFilter(chip.dataset.categoria));
   });
 
-  // Preselección por URL: galeria.html?categoria=<slug>
+  // Preselección por URL: /galeria?categoria=<slug>
   const initial = new URLSearchParams(location.search).get('categoria');
   setFilter(initial || 'todas', { updateUrl: false, announce: false });
   if (initial && validSlugs.includes(initial) && initial !== 'todas') {

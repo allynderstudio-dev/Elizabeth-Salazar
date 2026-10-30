@@ -24,6 +24,7 @@ function loadSecrets() {
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json',
+  '.ico': 'image/vnd.microsoft.icon', '.webmanifest': 'application/manifest+json', '.xml': 'application/xml', '.txt': 'text/plain; charset=utf-8',
 };
 
 function createServer(routes) {
@@ -35,9 +36,17 @@ function createServer(routes) {
       return route(req, res);
     }
     if (url.pathname.startsWith('/api/')) { res.statusCode = 404; return res.end('{"error":"not_found"}'); }
+    // URLs limpias como en Vercel (cleanUrls + trailingSlash: false): /servicios.html, /index y
+    // /servicios/ redirigen (308, con la query) a /servicios o /; /servicios sirve servicios.html
+    const clean = url.pathname.replace(/\.html$/, '').replace(/\/index$/, '/').replace(/(.)\/$/, '$1');
+    if (clean !== url.pathname) {
+      res.writeHead(308, { Location: clean + url.search });
+      return res.end();
+    }
     let file = path.join(ROOT, decodeURIComponent(url.pathname));
     if (!file.startsWith(ROOT)) { res.statusCode = 403; return res.end(); }
     if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
+    else if (!path.extname(file) && fs.existsSync(`${file}.html`)) file = `${file}.html`;
     if (!fs.existsSync(file)) { res.statusCode = 404; return res.end('No encontrado'); }
     res.setHeader('Content-Type', TYPES[path.extname(file)] || 'application/octet-stream');
     fs.createReadStream(file).pipe(res);

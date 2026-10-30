@@ -23,12 +23,12 @@
   });
 
   /* ---------- Precarga de la foto del hero al apuntar a una sesión ----------
-     Al pasar el cursor, enfocar o tocar un enlace a servicio-detalle.html?sesion=<slug>,
+     Al pasar el cursor, enfocar o tocar un enlace a /servicio-detalle?sesion=<slug>,
      se descarga su foto del hero para que la página la tenga en caché al abrirse.
      new Image() en vez de <link rel="prefetch">: Safari no soporta prefetch. */
   const warmed = new Set();
   const warmHero = (e) => {
-    const link = e.target.closest && e.target.closest('a[href*="servicio-detalle.html?"]');
+    const link = e.target.closest && e.target.closest('a[href*="servicio-detalle?"]');
     if (!link) return;
     const slug = new URL(link.href, location.href).searchParams.get('sesion');
     if (!slug || !/^[a-z0-9-]+$/.test(slug) || warmed.has(slug)) return;

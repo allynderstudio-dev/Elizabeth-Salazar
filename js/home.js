@@ -85,7 +85,7 @@
         field('description').textContent = data.description;
         field('meta').textContent = data.meta;
         const cta = field('cta');
-        cta.href = `servicio-detalle.html?sesion=${data.key}`;
+        cta.href = `/servicio-detalle?sesion=${data.key}`;
         cta.querySelector('span').textContent = data.cta || `Ver sesión de ${data.service}`;
       };
       animate ? crossfade([info], update) : update();
@@ -174,7 +174,7 @@
         f('duration').textContent = data.duration;
         f('photos').textContent = data.photos;
         f('price').textContent = data.price;
-        f('cta').href = `servicio-detalle.html?sesion=${data.slug}`;
+        f('cta').href = `/servicio-detalle?sesion=${data.slug}`;
       });
     };
 

@@ -20,14 +20,21 @@ for page in sorted(ROOT.glob('*.html')):
     for ref in ATTR.findall(text):
         for part in ref.split(','):
             url = part.strip().split(' ')[0]
-            if not url or url.startswith(('#', 'http', 'mailto:', 'tel:', 'data:', 'javascript:')) or '${' in url:
+            if not url or url.startswith(('#', 'http', 'mailto:', 'tel:', 'data:', 'javascript:', '//')) or '${' in url:
                 continue
-            if not re.search(r'\.(html|css|js|svg|jpe?g|png|webp|woff2|ico|webmanifest)', url):
+            route = urlparse(url).path
+            # Las páginas se enlazan con URL limpia (/servicios, /): vercel.json tiene cleanUrls
+            if route.endswith('.html'):
+                missing.append(f'{page.name}: {url} (usa la URL limpia, sin .html)')
                 continue
-            path = ROOT / urlparse(url).path
+            if route.startswith('/') and not re.search(r'\.\w+$', route):
+                route = (route.strip('/') or 'index') + '.html'
+            elif not re.search(r'\.(css|js|svg|jpe?g|png|webp|woff2|ico|webmanifest)', url):
+                continue
+            path = ROOT / route.lstrip('/')
             if not path.exists():
                 missing.append(f'{page.name}: {url}')
-            elif urlparse(url).path.lstrip('./') in IGNORED:
+            elif path.relative_to(ROOT).as_posix() in IGNORED:
                 missing.append(f'{page.name}: {url} (no se publica, ver .vercelignore)')
 for css in (ROOT / 'css').glob('*.css'):
     for url in re.findall(r'url\(([^)]+)\)', css.read_text(encoding='utf-8')):

@@ -56,7 +56,7 @@
 
   // Enlaces de reserva y WhatsApp
   document.querySelectorAll('[data-link="reservar"]').forEach((a) => {
-    a.href = `reservar.html?temporada=${encodeURIComponent(temporada.slug)}`;
+    a.href = `/reservar?temporada=${encodeURIComponent(temporada.slug)}`;
   });
   const estado = datos.ESTADOS[temporada.estado] || datos.ESTADOS.proximamente;
   document.querySelectorAll('a[data-whatsapp]').forEach((a) => {

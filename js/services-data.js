@@ -1,6 +1,6 @@
 // Datos de las páginas de servicio (Figma: "Servicio · …" Desktop/Mobile, página 22:1062)
 // Todo el texto es literal de Figma. Lo derivado está marcado con «derivado».
-// window.SERVICES_DATA[slug] lo usa js/servicio-detalle.js para pintar servicio-detalle.html?sesion=<slug>
+// window.SERVICES_DATA[slug] lo usa js/servicio-detalle.js para pintar /servicio-detalle?sesion=<slug>
 (() => {
   const IMG = 'assets/images/servicio';
 

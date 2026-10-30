@@ -1,6 +1,6 @@
 # Ely Salazar — Sitio web
 
-Sitio estático (HTML5 + CSS3 + JavaScript vanilla, sin frameworks ni dependencias) construido desde el diseño en Figma de Ely Salazar Photography. Se puede subir tal cual a cualquier hosting estático.
+Sitio estático (HTML5 + CSS3 + JavaScript vanilla, sin frameworks ni dependencias) construido desde el diseño en Figma de Ely Salazar Photography. Se puede subir tal cual a cualquier hosting estático que sirva URLs limpias (`/servicios` → `servicios.html`).
 
 ## Fuente de diseño
 
@@ -10,17 +10,17 @@ El archivo original del handoff (`0RsqVk8C58hD2lcW70eWMd`) no se pudo leer: la c
 
 ## Páginas
 
-| Archivo | Figma (desktop · mobile) | Qué es |
+| Archivo · URL | Figma (desktop · mobile) | Qué es |
 |---|---|---|
-| `index.html` | Homepage (frame ya retirado del archivo) | Inicio |
-| `servicios.html` | 27:2866 · 27:2909 (+ estados 27:2947) | Catálogo con filtro por categoría |
-| `servicio-detalle.html?sesion=<slug>` | 22 frames "Servicio · …" (+ estados 27:5751) | Una plantilla para las 11 sesiones |
-| `temporada.html` | 27:12873 · 27:12906 (+ estado 27:12930) | Temporadas del año |
-| `temporada-detalle.html?t=<slug>` | 27:20198 · 27:20254 | Plantilla de temporada (contenido de ejemplo) |
-| `galeria.html` | 27:13585 · 27:13637 (+ estados 27:13677) | Galería con filtros y lightbox |
-| `sobre-ely.html` | 27:14191 · 27:14256 | Sobre Ely |
-| `preguntas-y-politicas.html` | 27:19528 · 27:19620 | Preguntas frecuentes y políticas de reserva |
-| `reservar.html` | Pasos 1–5 y "Solicitud enviada" (27:15239…27:15567) | Flujo de reserva en 5 pasos |
+| `index.html` · `/` | Homepage (frame ya retirado del archivo) | Inicio |
+| `servicios.html` · `/servicios` | 27:2866 · 27:2909 (+ estados 27:2947) | Catálogo con filtro por categoría |
+| `servicio-detalle.html` · `/servicio-detalle?sesion=<slug>` | 22 frames "Servicio · …" (+ estados 27:5751) | Una plantilla para las 11 sesiones |
+| `temporada.html` · `/temporada` | 27:12873 · 27:12906 (+ estado 27:12930) | Temporadas del año |
+| `temporada-detalle.html` · `/temporada-detalle?t=<slug>` | 27:20198 · 27:20254 | Plantilla de temporada (contenido de ejemplo) |
+| `galeria.html` · `/galeria` | 27:13585 · 27:13637 (+ estados 27:13677) | Galería con filtros y lightbox |
+| `sobre-ely.html` · `/sobre-ely` | 27:14191 · 27:14256 | Sobre Ely |
+| `preguntas-y-politicas.html` · `/preguntas-y-politicas` | 27:19528 · 27:19620 | Preguntas frecuentes y políticas de reserva |
+| `reservar.html` · `/reservar` | Pasos 1–5 y "Solicitud enviada" (27:15239…27:15567) | Flujo de reserva en 5 pasos, todos en `/reservar` |
 
 **Slugs de sesión:** `embarazo`, `newborn`, `mes-a-mes`, `cumpleanos-infantiles`, `cumpleanos-adultos`, `quince-anos`, `revelacion-de-sexo`, `recepciones`, `familiar`, `parejas`, `fotografia-profesional-y-comercial`.
 
@@ -60,7 +60,7 @@ El archivo original del handoff (`0RsqVk8C58hD2lcW70eWMd`) no se pudo leer: la c
 npm run dev        # sitio + /api (reservas). Requiere Node 20+
 ```
 
-Abre http://localhost:8080. `python3 -m http.server 8080` sigue sirviendo las páginas, pero sin `/api`.
+Abre http://localhost:8080. El servidor imita las URLs limpias de Vercel (`/servicios` sirve `servicios.html` y las `.html` redirigen); `python3 -m http.server` ya no sirve: los enlaces no llevan `.html`.
 
 ## Mantenimiento
 
@@ -84,7 +84,9 @@ python3 tools/check-links.py
 
 Vercel, desde GitHub: cada push a `main` publica el sitio estático y las funciones de `api/`. No hay paso de build. Otros hosts estáticos sirven las páginas, pero sin `/api` las reservas en línea no funcionan (ver "Reservas con Cal.com").
 
-Dominio de producción: `https://www.elysalazarstudio.com` (`elysalazarstudio.com` redirige al `www`). Las etiquetas `og:url`, `og:image` y `twitter:image` usan URLs absolutas de ese dominio; si cambia, actualízalas en todas las páginas y en `tools/page-template.html`.
+Dominio de producción: `https://www.elysalazarstudio.com` (`elysalazarstudio.com` redirige al `www`). Las etiquetas `canonical`, `og:url`, `og:image` y `twitter:image`, `sitemap.xml`, `robots.txt` y la canónica que pone `js/servicio-detalle.js` usan URLs absolutas de ese dominio; si cambia, actualízalas todas (y `tools/page-template.html`).
+
+URLs limpias (`vercel.json`: `cleanUrls`, `trailingSlash: false`): las páginas se enlazan como `/`, `/servicios`, `/servicio-detalle?sesion=<slug>`, `/reservar`. Las URLs antiguas con `.html` (o con barra final) redirigen con 308 y conservan la query. Los 5 pasos de la reserva comparten `/reservar`: el paso va en `history.state` y en el borrador de `sessionStorage`, así que atrás/adelante y recargar siguen funcionando; el `?paso=N` de enlaces antiguos se respeta una vez y se quita de la barra. `tools/check-links.py` rechaza enlaces con `.html`, y `tests/urls.test.js` revisa el sitemap y las canónicas: si agregas una página o una sesión, súmala a `sitemap.xml`.
 
 Íconos y vista previa al compartir (exportados del Figma, sección «Brand Assets — Digital»): `favicon.svg` (cambia a crema en modo oscuro), `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png` y `site.webmanifest` en la raíz; la imagen para redes es `assets/images/og-image.jpg` (1200×630). No los redibujes: si cambian, vuelve a exportarlos desde Figma.
 

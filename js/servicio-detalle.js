@@ -1,4 +1,4 @@
-// Plantilla de servicio: pinta servicio-detalle.html?sesion=<slug> con los datos de js/services-data.js
+// Plantilla de servicio: pinta /servicio-detalle?sesion=<slug> con los datos de js/services-data.js
 // - El HTML trae Embarazo ya pintado (funciona sin JS y para SEO). Para otro slug se reemplaza <main>.
 // - Se carga ANTES de main.js: main.js activa después el acordeón [data-faq] y los enlaces [data-whatsapp].
 // - Interacciones de Figma (27:5751): texto del storytelling fijo (sticky) que cambia por capítulo en desktop,
@@ -19,7 +19,7 @@
   const icon = (name, size = 20) => `<img src="${ICONS}/${name}.svg" alt="" width="${size}" height="${size}">`;
 
   const bookingHref = (slug, pkg) =>
-    `reservar.html?sesion=${encodeURIComponent(slug)}${pkg ? `&amp;paquete=${encodeURIComponent(pkg)}` : ''}`;
+    `/reservar?sesion=${encodeURIComponent(slug)}${pkg ? `&amp;paquete=${encodeURIComponent(pkg)}` : ''}`;
 
   // Mensaje de WhatsApp con el nombre de la sesión (derivado del mensaje general del sitio)
   const waMessage = (s) => `Hola Ely, quisiera información sobre la sesión de ${s.name}.`;
@@ -101,7 +101,7 @@
 
   const galleryLink = (s, C) => `
         <div class="sd-story__more">
-          <a class="btn btn--text" href="galeria.html?categoria=${encodeURIComponent(s.galleryCategory)}"><span class="sd-desktop-only">${esc(s.galleryDesktop)}</span><span class="sd-mobile-only">${esc(C.galleryMobile)}</span>${icon('arrow-right')}</a>
+          <a class="btn btn--text" href="/galeria?categoria=${encodeURIComponent(s.galleryCategory)}"><span class="sd-desktop-only">${esc(s.galleryDesktop)}</span><span class="sd-mobile-only">${esc(C.galleryMobile)}</span>${icon('arrow-right')}</a>
         </div>`;
 
   const storyChapters = (s) => {
@@ -298,7 +298,7 @@
             <p class="t-eyebrow">${esc(C.faqEyebrow)}</p>
             <h2 class="t-h2 sd-title-m" id="sd-faq-title">${esc(C.faqTitle)}</h2>
           </div>
-          <a class="btn btn--text sd-faq__more" href="preguntas-y-politicas.html"><span>${esc(C.faqMore)}</span>${icon('arrow-right')}</a>
+          <a class="btn btn--text sd-faq__more" href="/preguntas-y-politicas"><span>${esc(C.faqMore)}</span>${icon('arrow-right')}</a>
         </div>
         <div class="faq-list" data-faq>${s.faq
           .map(
@@ -383,7 +383,7 @@
           </div>
           <p class="t-body-lg">No encontramos la sesión que buscas. Puedes ver todas las sesiones disponibles.</p>
         </div>
-        <a class="btn btn--primary" href="servicios.html">Ver todas las sesiones${icon('arrow-right-inverse')}</a>
+        <a class="btn btn--primary" href="/servicios">Ver todas las sesiones${icon('arrow-right-inverse')}</a>
       </div>
     </section>`;
     setMeta('Sesión no encontrada · Ely Salazar');
@@ -401,6 +401,12 @@
   reveal();
   setMeta(service.documentTitle, service.metaDescription);
   document.querySelector('meta[property="og:image"]')?.setAttribute('content', service.hero.photo.src);
+  // URL canónica por sesión. El HTML no trae una fija: es una sola plantilla para las 11 y apuntaría
+  // siempre a Embarazo. /servicio-detalle sin ?sesion= muestra Embarazo y se canoniza a ?sesion=embarazo.
+  const canonical = document.createElement('link');
+  canonical.rel = 'canonical';
+  canonical.href = `https://www.elysalazarstudio.com/servicio-detalle?sesion=${slug}`;
+  document.head.appendChild(canonical);
 
   /* ---------- Storytelling: el texto cambia solo al cruzar un capítulo (desktop/tablet) ---------- */
   const storyEl = main.querySelector('[data-story]');
