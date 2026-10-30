@@ -84,7 +84,7 @@ python3 tools/check-links.py
 
 Vercel, desde GitHub: cada push a `main` publica el sitio estático y las funciones de `api/`. No hay paso de build. Otros hosts estáticos sirven las páginas, pero sin `/api` las reservas en línea no funcionan (ver "Reservas con Cal.com").
 
-Dominio de producción: `https://www.elysalazarstudio.com` (`elysalazarstudio.com` redirige al `www`). Las etiquetas `canonical`, `og:url`, `og:image` y `twitter:image`, `sitemap.xml`, `robots.txt` y la canónica que pone `js/servicio-detalle.js` usan URLs absolutas de ese dominio; si cambia, actualízalas todas (y `tools/page-template.html`).
+Dominio de producción: `https://elysalazarstudio.com` (`www.elysalazarstudio.com` redirige aquí). Las etiquetas `canonical`, `og:url`, `og:image` y `twitter:image`, `sitemap.xml`, `robots.txt` y la canónica que pone `js/servicio-detalle.js` usan URLs absolutas de ese dominio; si cambia, actualízalas todas (y `tools/page-template.html`).
 
 URLs limpias (`vercel.json`: `cleanUrls`, `trailingSlash: false`): las páginas se enlazan como `/`, `/servicios`, `/servicio-detalle?sesion=<slug>`, `/reservar`. Las URLs antiguas con `.html` (o con barra final) redirigen con 308 y conservan la query. Los 5 pasos de la reserva comparten `/reservar`: el paso va en `history.state` y en el borrador de `sessionStorage`, así que atrás/adelante y recargar siguen funcionando; el `?paso=N` de enlaces antiguos se respeta una vez y se quita de la barra. `tools/check-links.py` rechaza enlaces con `.html`, y `tests/urls.test.js` revisa el sitemap y las canónicas: si agregas una página o una sesión, súmala a `sitemap.xml`.
 

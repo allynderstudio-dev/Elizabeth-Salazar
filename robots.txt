@@ -1,4 +1,4 @@
 User-agent: *
 Disallow: /api/
 
-Sitemap: https://www.elysalazarstudio.com/sitemap.xml
+Sitemap: https://elysalazarstudio.com/sitemap.xml

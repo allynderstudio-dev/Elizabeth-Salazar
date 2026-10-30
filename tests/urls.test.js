@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
-const SITE = 'https://www.elysalazarstudio.com';
+const SITE = 'https://elysalazarstudio.com';
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const PAGES = fs.readdirSync(ROOT).filter((f) => f.endsWith('.html')).map((f) => f.replace(/\.html$/, ''));
 const IGNORED = read('.vercelignore').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));

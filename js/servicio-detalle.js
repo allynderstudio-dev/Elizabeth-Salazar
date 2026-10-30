@@ -405,7 +405,7 @@
   // siempre a Embarazo. /servicio-detalle sin ?sesion= muestra Embarazo y se canoniza a ?sesion=embarazo.
   const canonical = document.createElement('link');
   canonical.rel = 'canonical';
-  canonical.href = `https://www.elysalazarstudio.com/servicio-detalle?sesion=${slug}`;
+  canonical.href = `https://elysalazarstudio.com/servicio-detalle?sesion=${slug}`;
   document.head.appendChild(canonical);
 
   /* ---------- Storytelling: el texto cambia solo al cruzar un capítulo (desktop/tablet) ---------- */
