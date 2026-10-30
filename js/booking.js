@@ -5,8 +5,9 @@
 //  - "live": el paquete tiene evento de Cal.com (lo decide el backend). Solo se ofrecen
 //    horarios que Cal.com devuelve como libres y la solicitud se registra como pendiente
 //    en Cal.com ANTES de mostrar éxito o el enlace a WhatsApp.
-//  - "manual": sin evento o sin endpoints. Fecha y hora son preferencias y todo se
-//    completa por WhatsApp; no se dice que la solicitud quedó registrada.
+//  - "manual": reserva en línea no disponible (sin evento, sin endpoints o sin almacén en el
+//    servidor). Se avisa en el paso 3, ANTES de elegir hora; fecha y hora son preferencias y
+//    el final es una CONSULTA por WhatsApp: nunca parece una reserva ni pide el abono (BR-18).
 // Si Cal.com falla para un paquete "live", no se inventa disponibilidad: se pide reintentar.
 (() => {
   const CFG = window.BOOKING_CONFIG;
@@ -36,7 +37,8 @@
   // Copias según el modo. "live" = textos aprobados en Figma (28/10/2026): el abono se pide
   // dentro de 24 horas, pero la solicitud NUNCA vence sola; el horario sigue apartado hasta que
   // Ely confirma, rechaza o cancela en Cal.com (ver README).
-  // "manual" = modo WhatsApp (sin Cal.com): no afirma que la solicitud quedó registrada.
+  // "manual" = consulta por WhatsApp (sin Cal.com): no afirma que haya nada registrado ni
+  // apartado. Textos provisionales del handoff (DEV-P0-05) hasta que Figma los apruebe (FIG-08).
   const COPY = {
     live: {
       submit: 'Enviar solicitud de reserva',
@@ -49,21 +51,21 @@
       statusTitle: 'Falta tu abono del 50%',
       statusText: 'Tu solicitud quedó registrada, pero aún no es una reserva confirmada.',
       next1: () => 'Envía el mensaje de WhatsApp: así Ely recibe los datos de tu solicitud.',
+      next2: (d) => `Coordina con Ely el método de pago del abono de ${d}.`,
       timeLegend: 'Horarios disponibles',
       timeNote: 'Cada sesión dura alrededor de 2 horas. Los horarios tachados ya no están disponibles.',
     },
     manual: {
-      submit: 'Preparar solicitud por WhatsApp',
+      submit: 'Preparar consulta por WhatsApp',
       notice: 'Ely te confirmará por WhatsApp si tu horario está disponible. Para confirmar tu sesión, debes realizar el abono del 50% del valor total.',
-      after1: 'Envías tu solicitud por WhatsApp y Ely confirma si tu horario está disponible.',
-      after2: (d) => `Realizas el abono de ${d} (50%) y lo coordinas con Ely por WhatsApp.`,
-      successTitle: 'Tu solicitud está lista',
-      successSubtitle: 'Envíala por WhatsApp para que Ely confirme tu horario. Para confirmar tu sesión, debes realizar el abono del 50%.',
-      badge: 'Pendiente de envío',
-      statusTitle: 'Envía tu solicitud por WhatsApp',
-      statusText: 'Aún no está registrada ni es una reserva confirmada; se completa al enviar el mensaje.',
-      next1: (d) => `Envía el mensaje por WhatsApp y realiza el abono de ${d} (50%) en las próximas 24 horas.`,
-      // Compartido por los dos modos (Figma, "Próximos pasos" 2)
+      after1: 'Envías tu consulta por WhatsApp y Ely te confirma si el horario está disponible.',
+      after2: (d) => `Si hay disponibilidad, coordinas con Ely el abono de ${d} (50%).`,
+      successTitle: 'Tu consulta está lista para enviar',
+      successSubtitle: 'Aún no hay un horario reservado. Envíala por WhatsApp y Ely te confirmará la disponibilidad.',
+      statusTitle: 'Envía tu consulta por WhatsApp',
+      statusText: 'Ely te responderá con la disponibilidad de la fecha y la hora que prefieres.',
+      next1: () => 'Envía el mensaje de WhatsApp con los datos de tu consulta.',
+      next2: () => 'Ely te confirmará si el horario está disponible y cómo realizar el abono.',
       timeLegend: 'Elige tu horario preferido',
       timeNote: 'Cada sesión dura alrededor de 2 horas. Ely confirmará la disponibilidad por WhatsApp.',
     },
@@ -89,8 +91,12 @@
     availability: 'No pudimos consultar la disponibilidad. Inténtalo de nuevo en unos minutos o escríbenos por WhatsApp.',
     busy: 'Estamos procesando otra solicitud para ese día. Vuelve a intentarlo en unos segundos: no se duplicará.',
     rateLimited: 'Recibimos varias solicitudes seguidas desde tu conexión. Espera unos minutos y vuelve a intentarlo, o escríbenos por WhatsApp. Tus datos se mantienen.',
+    // Verificación de seguridad (Figma 310:5975, estados 4 y 5)
+    captchaFailed: 'No pudimos verificar tu solicitud. Inténtalo nuevamente.',
+    captchaExpired: 'La verificación expiró. Inténtalo nuevamente.',
   };
-  const NEXT2 = (d) => `Coordina con Ely el método de pago del abono de ${d}.`;
+  // Etiquetas del botón en estado de carga (Figma 310:5975, estados 2 y 6)
+  const LOADING = { verify: 'Verificando…', send: 'Enviando solicitud…' };
 
   /* ---------- Fechas (hora de Venezuela) ---------- */
   const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -164,6 +170,7 @@
   // Caché por servicio|paquete|mes: { 'AAAA-MM-DD': ['08:00', ...] } (solo libres)
   // o null cuando el paquete se coordina por WhatsApp. Los fallos no se guardan.
   const availabilityCache = new Map();
+  let serverSiteKey = ''; // clave de sitio de Turnstile que envía el servidor (vacía = sin verificación)
   const cacheKey = (month) => `${state.service}|${state.pkg}|${month}`;
 
   async function fetchAvailability(month) {
@@ -179,6 +186,7 @@
     const json = await res.json();
     if (!json || typeof json.reservable !== 'boolean') throw new Error('Disponibilidad: respuesta inesperada');
     const days = json.reservable ? json.dias || {} : null;
+    if (json.reservable && typeof json.turnstile === 'string') serverSiteKey = json.turnstile;
     if (days && (typeof days !== 'object' || Object.values(days).some((v) => !Array.isArray(v)))) throw new Error('Disponibilidad: formato inesperado');
     availabilityCache.set(key, days);
     return days;
@@ -441,7 +449,12 @@
     note.textContent = availabilityError ? ERR.availability : (live || monthAvailability ? COPY.live.timeNote : COPY.manual.timeNote);
     $('[data-time-legend]').textContent = live || monthAvailability ? COPY.live.timeLegend : COPY.manual.timeLegend;
     $('[data-retry-availability]').hidden = !availabilityError;
+    $('[data-offline-notice]').hidden = !onlineUnavailable();
   }
+
+  // Reserva en línea no disponible para este paquete (respuesta reservable:false o sitio sin
+  // endpoints). Un fallo de consulta NO cuenta: ahí se pide reintentar.
+  const onlineUnavailable = () => Boolean(state.pkg) && !availabilityError && !monthAvailability;
 
   $('[data-retry-availability]').addEventListener('click', async () => {
     await loadMonth();
@@ -1040,13 +1053,13 @@
       lines.push(`Nombre: ${state.name.trim()}`, `WhatsApp: ${state.code} ${formatPhone(state.phone)}`);
       if (sent) lines.push(`Quiero coordinar el abono de ${dep} (50%).`);
     } else {
-      // Sin backend: el mensaje ES la solicitud; fecha y hora son preferencias por confirmar
-      lines.push('Hola, Ely. Quiero reservar una sesión.');
+      // Consulta: no hay nada registrado; fecha y hora son preferencias por confirmar
+      lines.push('Hola, Ely. Quiero consultar la disponibilidad para una sesión.');
       lines.push(`Servicio: ${s.name}`, `Paquete: ${p.name} (${money(p.price)})`, ...priceLines);
       lines.push(`Fecha preferida: ${longDate(state.date)}`, `Hora preferida: ${timeLabel(state.time)} (${CFG.timezoneLabel})`);
       details().forEach(([k, v]) => lines.push(`${k}: ${v}`));
       lines.push(`Nombre: ${state.name.trim()}`, `WhatsApp: ${state.code} ${formatPhone(state.phone)}`);
-      lines.push(`Quiero coordinar el abono de ${dep} (50%).`);
+      lines.push('¿Tienes ese horario disponible?');
     }
     return lines.join('\n');
   }
@@ -1081,14 +1094,17 @@
     const copy = T();
     $('[data-copy="after2"]').textContent = copy.after2(dep);
     $('[data-copy="next1"]').textContent = copy.next1(dep);
-    $('[data-copy="next2"]').textContent = NEXT2(dep);
+    $('[data-copy="next2"]').textContent = copy.next2(dep);
     $('[data-status-meta]').textContent = state.booking
       ? `Abono requerido: ${dep} (50% del total) · Referencia: ${state.booking.referencia}`
       : `Abono requerido: ${dep} (50% del total).`;
     // Copias que dependen del modo (puede cambiar con el paquete o el horario)
     $$('[data-copy="submit"]').forEach((el) => { el.textContent = copy.submit; });
     $('[data-copy="after1"]').textContent = copy.after1;
-    $('[data-copy="badge"]').textContent = copy.badge;
+    // La consulta no tiene estado ni abono: sin insignia ni "Abono requerido" (BR-18)
+    $('[data-status-badge]').hidden = !copy.badge;
+    $('[data-status-meta]').hidden = !copy.badge;
+    if (copy.badge) $('[data-copy="badge"]').textContent = copy.badge;
     $('[data-copy="statusTitle"]').textContent = copy.statusTitle;
     $('[data-copy="statusText"]').textContent = copy.statusText;
   }
@@ -1188,6 +1204,7 @@
       // cualquier servicio) o un bloqueo manual de Ely pudo ocupar horarios desde que se consultó
       if (step === 3) availabilityCache.clear();
       await loadMonth();
+      if (step === 5 && captchaKey() && liveSlotSelected()) loadCaptcha().catch(() => {}); // solo descarga el script
       if (state.date && state.time && !slotFree(state.date, state.time)) {
         state.conflict = { date: state.date, time: state.time };
         state.time = null;
@@ -1232,11 +1249,92 @@
   $$('[data-submit], [data-submit-side]').forEach((b) => b.addEventListener('click', sendRequest));
   $('[data-conflict-pick]').addEventListener('click', () => goTo(3));
 
-  const setSending = (on) => {
-    sending = on;
-    $$('[data-submit], [data-submit-side]').forEach((b) => (on ? b.setAttribute('aria-disabled', 'true') : b.removeAttribute('aria-disabled')));
-    form.setAttribute('aria-busy', String(on));
+  // mode: false | 'verify' (Verificando…) | 'interact' (Cloudflare pide a la persona: botón
+  // deshabilitado, sin carga) | 'send' (Enviando solicitud…). "Atrás" queda deshabilitado.
+  const setSending = (mode) => {
+    sending = Boolean(mode);
+    const loading = mode === 'verify' || mode === 'send';
+    $$('[data-submit], [data-submit-side]').forEach((b) => {
+      if (mode) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+      b.setAttribute('aria-busy', String(loading));
+      b.classList.toggle('is-loading', loading);
+      b.querySelector('[data-copy="submit"]').textContent = loading ? LOADING[mode] : T().submit;
+    });
+    $('.booking__back-icon').disabled = sending;
+    form.setAttribute('aria-busy', String(loading));
   };
+
+  /* ---------- Verificación de seguridad (Cloudflare Turnstile, Figma 310:5975) ---------- */
+  // Modo Managed, solo al tocar "Enviar solicitud de reserva" (execution: execute) y visible solo
+  // si Cloudflare necesita a la persona (appearance: interaction-only). Un token nuevo por
+  // intento: son de un solo uso y el servidor los verifica antes de tocar Cal.com.
+  const captchaKey = () => serverSiteKey || CFG.turnstileSiteKey || '';
+  const captchaSlot = $('[data-turnstile]');
+  let captchaScript = null;
+  let captchaWidget = null;
+  let captchaWaiter = null;
+
+  function loadCaptcha() {
+    if (!captchaScript) {
+      captchaScript = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        s.onload = () => (window.turnstile ? resolve(window.turnstile) : reject(new Error('turnstile')));
+        s.onerror = () => { captchaScript = null; reject(new Error('turnstile')); };
+        document.head.appendChild(s);
+      });
+    }
+    return captchaScript;
+  }
+
+  const showCaptcha = (on) => { captchaSlot.hidden = !on; };
+  const settleCaptcha = (ok, value) => {
+    const w = captchaWaiter;
+    captchaWaiter = null;
+    showCaptcha(false);
+    if (w) (ok ? w.resolve : w.reject)(value);
+  };
+
+  // → token | rechaza con 'failed'
+  async function captchaToken() {
+    let ts;
+    try { ts = await loadCaptcha(); } catch (e) { throw 'failed'; } // eslint-disable-line no-throw-literal
+    return new Promise((resolve, reject) => {
+      captchaWaiter = { resolve, reject };
+      if (captchaWidget === null) {
+        captchaWidget = ts.render(captchaSlot, {
+          sitekey: captchaKey(),
+          action: 'reserva',
+          execution: 'execute',
+          appearance: 'interaction-only',
+          size: matchMedia('(min-width: 768px)').matches ? 'normal' : 'flexible',
+          language: 'es',
+          theme: 'light',
+          callback: (token) => settleCaptcha(true, token),
+          'error-callback': () => { settleCaptcha(false, 'failed'); return true; },
+          // Estado 3: Cloudflare necesita a la persona. Se muestra el widget sobre la barra de
+          // acciones (nunca tapado por la barra fija en móvil) y el envío sigue solo al completarlo.
+          'before-interactive-callback': () => {
+            setSending('interact');
+            showCaptcha(true);
+            captchaSlot.scrollIntoView({ block: 'center' });
+            captchaSlot.focus({ preventScroll: true });
+          },
+          // Estado 5: el desafío venció. Aviso, widget renovado y botón deshabilitado hasta completarlo.
+          'timeout-callback': () => {
+            showError('error-envio', ERR.captchaExpired);
+            setSending('interact');
+            showCaptcha(true);
+            ts.reset(captchaWidget);
+            ts.execute(captchaSlot);
+          },
+        });
+      } else {
+        ts.reset(captchaWidget);
+      }
+      ts.execute(captchaSlot);
+    });
+  }
 
   async function sendRequest() {
     if (state.step !== 5 || sending) return;
@@ -1249,9 +1347,32 @@
       store.clear();
       return;
     }
-    // Modo live: la solicitud pendiente debe existir en Cal.com ANTES de mostrar éxito o WhatsApp
-    setSending(true);
-    const result = await submitBooking(buildBookingPayload());
+    // Modo live: la solicitud pendiente debe existir en Cal.com ANTES de mostrar éxito o WhatsApp.
+    // Una verificación aprobada NO es una reserva: el éxito solo llega con el uid de Cal.com.
+    let result;
+    for (let attempt = 0; ; attempt += 1) {
+      let captcha = null;
+      if (captchaKey()) {
+        setSending('verify');
+        try {
+          captcha = await captchaToken();
+        } catch (e) {
+          setSending(false);
+          showError('error-envio', ERR.captchaFailed);
+          store.save();
+          return;
+        }
+        hideError('error-envio');
+      }
+      setSending('send');
+      result = await submitBooking({ ...buildBookingPayload(), ...(captcha ? { captcha } : {}) });
+      // Token vencido o ya usado (estado 5): se avisa y se repite la verificación una vez, solo
+      if (result.error === 'captcha_expired' && attempt === 0) {
+        showError('error-envio', ERR.captchaExpired);
+        continue;
+      }
+      break;
+    }
     setSending(false);
     const monthCache = cacheKey(monthKey(state.date));
     if (result.ok) {
@@ -1282,7 +1403,10 @@
       return;
     }
     // 'uncertain' y 'busy': se conserva la referencia; el reintento no duplica la reserva
-    const msg = { uncertain: ERR.uncertain, busy: ERR.busy, rate_limited: ERR.rateLimited, price_changed: ERR.priceChanged }[result.error] || ERR.submit;
+    const msg = {
+      uncertain: ERR.uncertain, busy: ERR.busy, rate_limited: ERR.rateLimited, price_changed: ERR.priceChanged,
+      captcha_failed: ERR.captchaFailed, captcha_unavailable: ERR.captchaFailed, captcha_expired: ERR.captchaExpired,
+    }[result.error] || ERR.submit;
     showError('error-envio', msg);
     store.save();
   }

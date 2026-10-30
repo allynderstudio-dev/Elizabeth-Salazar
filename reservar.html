@@ -148,6 +148,16 @@
                   </div>
                 </div>
               </div>
+              <!-- Reserva en línea no disponible (BR-18). Textos provisionales hasta FIG-08 -->
+              <div class="notice notice--important" data-offline-notice role="status" hidden>
+                <span class="notice__bar" aria-hidden="true"></span>
+                <div class="notice__content"><span class="notice__icon"><img src="assets/icons/alert.svg" alt="" width="20" height="20"></span>
+                  <div class="notice__text">
+                    <p class="notice__title">Reserva en línea no disponible</p>
+                    <p class="notice__body">En este momento no podemos registrar reservas en línea. Puedes enviarnos tu solicitud por WhatsApp y Ely te confirmará la disponibilidad.</p>
+                  </div>
+                </div>
+              </div>
               <div class="date-time">
                 <div class="calendar" data-calendar>
                   <div class="calendar__header">
@@ -273,20 +283,23 @@
               <section class="checklist" aria-labelledby="despues-titulo">
                 <h2 class="checklist__title" id="despues-titulo">Qué pasa después de enviarla</h2>
                 <ul class="feature-list">
-                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="after1">Envías tu solicitud por WhatsApp y Ely confirma si tu horario está disponible.</span></li>
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="after1">Registramos tu solicitud y apartamos tu horario mientras Ely la revisa.</span></li>
                   <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="after2">Realizas el abono de US$40 (50%) y lo coordinas con Ely por WhatsApp.</span></li>
                   <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span>Ely verifica tu abono y confirma tu sesión.</span></li>
                 </ul>
               </section>
               <p class="field-message field-message--error step-error" id="error-envio" role="alert" hidden></p>
+              <!-- Verificación de Cloudflare Turnstile (Figma 310:6364 / 310:6368): solo visible si
+                   Cloudflare pide interacción; Cloudflare dibuja el widget -->
+              <div class="turnstile-slot" data-turnstile tabindex="-1" aria-label="Verificación de seguridad" role="group" hidden></div>
             </div>
 
             <!-- Pantalla final (no es un paso) -->
             <div class="booking__panel" data-panel="success" hidden>
               <div class="status-card">
-                <p class="status-badge"><img src="assets/icons/tag-warning.svg" alt="" width="16" height="16"><span data-copy="badge">Pendiente de envío</span></p>
-                <h2 class="status-card__title" data-copy="statusTitle">Envía tu solicitud por WhatsApp</h2>
-                <p class="status-card__text" data-copy="statusText">Aún no está registrada ni es una reserva confirmada; se completa al enviar el mensaje.</p>
+                <p class="status-badge" data-status-badge><img src="assets/icons/tag-warning.svg" alt="" width="16" height="16"><span data-copy="badge">Pendiente de abono</span></p>
+                <h2 class="status-card__title" data-copy="statusTitle">Falta tu abono del 50%</h2>
+                <p class="status-card__text" data-copy="statusText">Tu solicitud quedó registrada, pero aún no es una reserva confirmada.</p>
                 <p class="status-card__meta" data-status-meta>Abono requerido: US$40 (50% del total).</p>
                 <a class="btn btn--primary" href="https://wa.me/584126463929" target="_blank" rel="noopener" data-whatsapp-link aria-label="Continuar por WhatsApp, se abre en otra app">
                   <img src="assets/icons/whatsapp-inverse.svg" alt="" width="20" height="20">
@@ -299,7 +312,7 @@
               <section class="checklist" aria-labelledby="proximos-titulo">
                 <h2 class="checklist__title" id="proximos-titulo">Próximos pasos</h2>
                 <ul class="feature-list">
-                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="next1">Envía el mensaje por WhatsApp y realiza el abono de US$40 (50%) en las próximas 24 horas.</span></li>
+                  <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="next1">Envía el mensaje de WhatsApp: así Ely recibe los datos de tu solicitud.</span></li>
                   <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span data-copy="next2">Coordina con Ely el método de pago del abono de US$40.</span></li>
                   <li class="feature-item"><span class="feature-item__icon"><img src="assets/icons/check.svg" alt="" width="20" height="20"></span><span>Recibirás la confirmación de tu sesión por WhatsApp.</span></li>
                 </ul>

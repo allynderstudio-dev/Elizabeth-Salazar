@@ -173,8 +173,9 @@ test('fallo de red sin crear: "uncertain" y el reintento crea una sola vez', asy
 test('5xx al crear y búsqueda posterior caída: "uncertain", nunca éxito', async () => {
   const { service, fake } = setup();
   fake.inject({ method: 'POST', path: /^\/v2\/bookings$/, kind: 503 });
-  // Listas: referencia antes del bloqueo, referencia y solapamientos dentro; falla la búsqueda posterior
-  fake.inject({ method: 'GET', path: /^\/v2\/bookings$/, kind: 'network', skip: 3 });
+  // Listas (cada búsqueda pide todas + pendientes): referencia antes del bloqueo, referencia y
+  // solapamientos dentro; falla la búsqueda posterior
+  fake.inject({ method: 'GET', path: /^\/v2\/bookings$/, kind: 'network', skip: 6 });
   await assert.rejects(service.createBooking(request()), (err) => err.code === 'uncertain');
 });
 

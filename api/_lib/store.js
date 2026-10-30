@@ -98,4 +98,19 @@ function storeFromEnv(env = process.env, { production = env.VERCEL_ENV === 'prod
   return production ? null : createMemoryStore();
 }
 
-module.exports = { createRedisStore, createMemoryStore, storeFromEnv, StoreError };
+// Comprueba que el almacén responde con una clave propia de salud (nunca las de reservas),
+// que caduca sola en 10 s. → 'ok' | 'ninguno' | 'error: …'
+async function probeStore(store, prefix) {
+  if (!store) return 'ninguno';
+  const key = `${prefix}:health`;
+  const token = `probe-${Date.now()}`;
+  try {
+    await store.setNx(key, token, 10000);
+    await store.delIfEquals(key, token);
+    return 'ok';
+  } catch (err) {
+    return `error: ${err.message}`;
+  }
+}
+
+module.exports = { createRedisStore, createMemoryStore, storeFromEnv, probeStore, StoreError };

@@ -132,14 +132,16 @@ Cal.com es la **única fuente de verdad** de las reservas: no hay base de datos.
 
 - **Nada vence ni se cancela solo.** Las 24 horas son una indicación al cliente más el recordatorio a Ely. Ely libera ella misma las solicitudes abandonadas, rechazándolas o cancelándolas en Cal.com. Si el cliente reportó el pago y Ely aún no lo verificó, puede dejarla pendiente el tiempo que necesite.
 - **Solo Ely confirma.** Abrir o enviar WhatsApp no cambia ningún estado. El sitio nunca muestra "Confirmada" ni dice que se recibió un pago.
-- **Estados para el cliente:** solo "Pendiente de abono" (y "Pendiente de envío" en el modo WhatsApp). No existen "Vencida" ni "Pendiente de confirmación".
+- **Estados para el cliente:** solo "Pendiente de abono". La consulta por WhatsApp (reserva en línea no disponible) no muestra ningún estado. No existen "Vencida" ni "Pendiente de confirmación".
+- **La reserva en línea es real o se dice que no está disponible (BR-18).** El éxito solo aparece con el `uid` verificado de Cal.com. WhatsApp nunca sustituye el registro de una reserva.
 - **Bloques fijos de 2 h:** lunes a sábado, 08:00, 10:00, 14:00 y 16:00 (hora de Caracas), de mañana a 6 meses. Todos los paquetes, incluidas las recepciones de unas 3 h, bloquean 120 min. Si una sesión se alarga, Ely bloquea el tiempo extra a mano (ver "Procedimiento de Ely").
 - **Newborn solo después del nacimiento:** con "¿Tu bebé ya nació?" = No no se puede reservar (ni precio ni abono). Con "Sí", el bebé debe tener menos de 4 meses de calendario **el día de la sesión** (31/10 + 4 meses = 28/02). El navegador y el servidor aplican la misma regla (`newbornEligibility` en `js/booking-data.js`). Cada bebé adicional suma US$20 (máximo 3 bebés hasta que Ely confirme otro).
 
 ### Cómo funciona
 
-- **Disponibilidad** (`GET /api/availability`): consulta `/v2/slots` en cada petición (sin caché, `no-store`). Solo ofrece lo que Cal.com devuelve libre, convertido a hora de Caracas. Si Cal.com falla, no ofrece ningún día y muestra "Reintentar". El navegador vuelve a pedir el mes cada vez que se entra al paso 3.
-- **Solicitud** (`POST /api/bookings`): valida datos, precio, abono y, en Newborn, nacimiento y edad, **antes** de llamar a Cal.com. Luego entra en la sección crítica:
+- **Disponibilidad** (`GET /api/availability`): consulta `/v2/slots` en cada petición (sin caché, `no-store`) y **además descuenta las reservas activas (pendientes y aceptadas) de cualquier paquete**, así una solicitud pendiente desaparece de inmediato para todos los servicios aunque Cal.com no la descontara (solo está verificado que descuenta las aceptadas). Solo ofrece lo que queda libre, en hora de Caracas. Si Cal.com o la lista de reservas fallan, no ofrece ningún día y muestra "Reintentar". El navegador vuelve a pedir el mes cada vez que se entra al paso 3.
+- **Listas de reservas activas:** cada búsqueda pide `GET /v2/bookings` sin filtro de estado **y** con `status=unconfirmed`, y une los resultados. Así no depende de que la lista sin filtro incluya las pendientes (sin verificar contra la API real, T-DB-12).
+- **Solicitud** (`POST /api/bookings`): en este orden, campo trampa → límite por IP → **Cloudflare Turnstile** → validación de datos, precio, abono y, en Newborn, nacimiento y edad. Todo eso ocurre **antes** de tomar el bloqueo o llamar a Cal.com. Luego entra en la sección crítica:
   1. bloqueo por **fecha** en Redis (`SET NX` con caducidad de 45 s): dos instancias nunca comprueban y crean a la vez para el mismo día;
   2. ¿ya existe una reserva con esta referencia? (reintentos, también en otra instancia);
   3. ¿hay una reserva **activa** (pendiente o aceptada) de cualquier paquete que se solape? Las rechazadas y canceladas no cuentan;
@@ -149,7 +151,9 @@ Cal.com es la **única fuente de verdad** de las reservas: no hay base de datos.
   Si el bloqueo no se obtiene en 8 s, o Redis no responde, la respuesta es `503 busy` (reintentable; nunca un falso éxito). Si la creación queda incierta (red caída), el bloqueo se mantiene 5 s más para que Cal.com muestre la reserva si llegó a crearse, y el cliente reintenta con la misma referencia sin duplicar. Si una instancia se cae, el bloqueo caduca solo. El rechazo de Cal.com ante un choque queda como segunda línea de defensa.
 - **Horario perdido:** si al enviar el horario ya no está libre, el paso 5 muestra "Horario no disponible" con "Elegir otro horario" (Figma 257:5898). Se conservan sesión, paquete, detalles, contacto y consentimiento. Lo mismo ocurre si el paso 3 detecta que la hora guardada ya no está libre (recarga o pestaña vieja).
 - **Abuso** (`api/_lib/rate-limit.js`): máximo 12 envíos por IP cada 10 minutos y 8 solicitudes **nuevas** por IP cada 24 horas. Los reintentos con la misma referencia no cuentan como nuevas. Al superarlo, `429 rate_limited` con `Retry-After`, y el sitio muestra un mensaje amable sin perder los datos. Además hay un campo trampa invisible (`sitio`): si llega lleno, se rechaza. Si Redis falla, el límite no bloquea a nadie (el bloqueo de reservas sigue protegiendo).
-- **Paquetes sin evento** o **sin almacén compartido en producción**: el sitio pasa al modo WhatsApp ("horario preferido", "Pendiente de envío") y no registra nada.
+- **CAPTCHA** (`api/_lib/captcha.js`, Figma 310:5975): Cloudflare Turnstile en modo **Managed**, solo al tocar "Enviar solicitud de reserva" en el paso 5 (`execution: 'execute'`, `appearance: 'interaction-only'`, `language: 'es'`, tema claro; `normal` en escritorio y `flexible` en móvil). Normalmente no se ve nada: el botón pasa por "Verificando…" y "Enviando solicitud…". Si Cloudflare necesita a la persona, el widget aparece sobre la barra de acciones con el botón deshabilitado y el envío sigue solo al completarlo. Errores: "No pudimos verificar tu solicitud. Inténtalo nuevamente." (`captcha_failed`, o `captcha_unavailable` si Cloudflare no responde: falla cerrado) y "La verificación expiró. Inténtalo nuevamente." (`captcha_expired`: se repite la verificación una vez, sola). Cada intento lleva un token nuevo (son de un solo uso); el servidor comprueba `success`, el host (`TURNSTILE_HOSTNAMES` o, en producción, el dominio público) y la acción `reserva`, con `idempotency_key` y un reintento si Cloudflare no responde. Es una capa **extra**: el campo trampa, el límite, la validación, la idempotencia, el bloqueo y las comprobaciones de Cal.com siguen igual. Una verificación aprobada no es una reserva.
+- **Reserva en línea no disponible** (sin evento, sin almacén en producción o sin endpoints): el paso 3 lo avisa **antes de elegir hora** ("Reserva en línea no disponible"). Fecha y hora son preferencias, el botón dice "Preparar consulta por WhatsApp" y la pantalla final es una **consulta** ("Tu consulta está lista para enviar" / "Aún no hay un horario reservado…"), sin insignia de estado, sin "Abono requerido" y sin decir que algo quedó apartado. Nada se registra en Cal.com. Textos provisionales del handoff (DEV-P0-05) hasta que Figma los apruebe (FIG-08).
+- **Incidente:** en producción, `reservas_desactivadas` se registra como **error en cada consulta** de disponibilidad, `GET /api/health` lo muestra (`{ modo, reservas, almacen }`, sin secretos ni escrituras) y el correo diario a Ely abre con "Problemas en la página de reservas (avisar a Dylan)", aunque no haya pendientes. El cron también prueba Redis con una clave de salud propia (`…:health`, caduca en 10 s) y avisa si falta `TURNSTILE_SECRET_KEY`.
 
 ### Entornos (nunca escribir en el calendario de Ely desde pruebas)
 
@@ -173,6 +177,8 @@ Cal.com es la **única fuente de verdad** de las reservas: no hay base de datos.
 | `KV_REST_API_URL` · `KV_REST_API_TOKEN` | Production (y Preview si se prueba) | Redis de Upstash (integración gratuita de Vercel Marketplace; también vale `UPSTASH_REDIS_REST_URL` · `UPSTASH_REDIS_REST_TOKEN`). **Sin ellas, producción no reserva en línea** (modo WhatsApp). |
 | `CRON_SECRET` | Production | Protege el cron. Vercel la envía como `Authorization: Bearer …`. |
 | `RESEND_API_KEY` · `REMINDER_EMAIL_TO` · `REMINDER_EMAIL_FROM` | Production (opcional) | Correo del recordatorio diario a Ely. Sin ellas, el recordatorio solo queda en el log. |
+| `TURNSTILE_SITE_KEY` · `TURNSTILE_SECRET_KEY` | Production (Preview con el par de prueba) | Cloudflare Turnstile, widget en modo **Managed** con los hosts de producción. La secreta es solo servidor; la de sitio es pública y el navegador la recibe con la disponibilidad (no hay que tocar el código). Hacen falta **las dos**: sin ellas no se exige verificación y en producción se registra como incidente. Tras añadirlas, Redeploy. |
+| `TURNSTILE_HOSTNAMES` | Opcional | Hosts aceptados en la verificación, separados por comas. Por defecto en producción: `elysalazarstudio.com` y `www.elysalazarstudio.com`. |
 | `CAL_TEST_EVENT_TYPE_ID` · `CAL_TEST_API_KEY` | Preview / local | Cuenta de Cal.com de prueba aislada |
 | `CAL_API_BASE` | Opcional | Por defecto `https://api.cal.com` |
 
@@ -201,7 +207,8 @@ Solo para Ely, nunca para el cliente, y nunca cambia una reserva. Opciones, en o
 
 | Archivo | Qué es |
 |---|---|
-| `api/availability.js` · `api/bookings.js` | Endpoints públicos |
+| `api/availability.js` · `api/bookings.js` · `api/health.js` | Endpoints públicos (`health`: modo y almacén, sin secretos) |
+| `api/_lib/captcha.js` | Verificación de Cloudflare Turnstile en el servidor |
 | `api/cron/review-reminder.js` · `api/_lib/reminder.js` | Recordatorio diario para Ely (solo lectura, protegido con `CRON_SECRET`) |
 | `api/_lib/booking-service.js` | Validación, sección crítica, creación y lista para el recordatorio |
 | `api/_lib/environment.js` | Modo production / test / read-only |
@@ -220,10 +227,12 @@ npm run dev        # sitio + /api en http://localhost:8080 (modo read-only salvo
 npm test           # pruebas automatizadas (Cal.com simulado, sin red)
 npm run check      # enlaces + pruebas
 npm run cal:check -- --test   # cuenta de prueba aislada: solo lectura
-npm run live:check            # sitio publicado: ¿cada paquete reserva en línea? (solo GET, T-DB-14)
+npm run live:check            # sitio publicado: /api/health y ¿cada paquete reserva en línea? (solo GET, T-DB-14)
 ```
 
-**Modo WhatsApp en producción = el sitio no aparta horarios.** Si `live:check` muestra `reservas_desactivadas`, falta el almacén compartido (`KV_REST_API_URL` / `KV_REST_API_TOKEN`): las solicitudes no se registran en Cal.com y el mismo horario sigue ofreciéndose a todos los servicios. El sitio lo dice al cliente ("Pendiente de envío", "Aún no está registrada"), y el log de Vercel lo registra como error al arrancar.
+**Modo WhatsApp en producción = el sitio no aparta horarios (incidente).** Si `live:check` muestra `reservas_desactivadas`, el servidor no ve el almacén compartido (`KV_REST_API_URL` / `KV_REST_API_TOKEN`): las solicitudes no se registran en Cal.com y el mismo horario sigue ofreciéndose a todos los servicios. El cliente ve "Reserva en línea no disponible" desde el paso 3. Causa habitual: las variables se añadieron **después** del último despliegue; Vercel solo las aplica a despliegues nuevos, así que hace falta **Redeploy** de producción.
+
+Turnstile en local: `TURNSTILE_SITE_KEY=1x00000000000000000000AA` (siempre pasa; `3x00000000000000000000FF` pide interacción) y `TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA` en el entorno del servidor, o solo `turnstileSiteKey` en `js/booking-config.js` para probar el widget. Nunca las claves reales en pruebas.
 
 El Cal.com simulado (`tests/helpers/fake-cal.js`) puede **no** hacer cumplir los choques (`enforce: false`). Así `tests/concurrency.test.js` prueba que lo que evita duplicados es el sitio: sin el bloqueo, la misma prueba crea dos reservas.
 
@@ -248,7 +257,7 @@ Pendientes, **solo en una cuenta de prueba aislada** (no hay credenciales todav�
 - [ ] T-DB-14: `npm run live:check` con todos los paquetes "en línea", después de configurar Redis en producción.
 - [ ] Rechazar y cancelar liberan el horario; aceptar lo mantiene; una pendiente bloquea otro servicio (T-LC-04 a T-LC-07).
 - [ ] Creaciones en paralelo, solape con pendiente y con aceptada, y la respuesta real de Cal.com ante un choque (T-DB-12). Actualizar `CONFLICT_PATTERN` si hace falta.
-- [ ] `GET /v2/bookings` sin filtro de estado devuelve también las pendientes (la comprobación de solapes lo supone).
+- [ ] `GET /v2/bookings` sin filtro de estado devuelve también las pendientes. Ya no es imprescindible: el sitio pide también `status=unconfirmed` y une las dos listas.
 - [ ] Bloqueo manual en Google Calendar → desaparece de `/v2/slots`, y el retraso entre el cambio y Cal.com (T-SY-01 a T-SY-08).
 - [ ] Workflow "When booking is requested" + espera de 24 h con una reserva creada por la API (T-RM-01 a T-RM-06).
 - [ ] Qué calendario revisa el evento 7652774 para detectar conflictos (Advanced → "Checking for conflicts") en la cuenta de Ely.

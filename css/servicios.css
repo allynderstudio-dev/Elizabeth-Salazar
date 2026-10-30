@@ -32,10 +32,10 @@
   aspect-ratio: 3 / 2;
 }
 
-/* 1 resultado: tarjeta horizontal centrada (840 px) */
+/* 1 resultado: tarjeta horizontal alineada a la izquierda (840 px) */
 .services-grid[data-count='1'] {
   grid-template-columns: minmax(0, 840px);
-  justify-content: center;
+  justify-content: start;
 }
 
 .services-grid .service-card[hidden] {

@@ -666,9 +666,21 @@ input:checked + .radio-mark::after {
   color: var(--color-text-primary);
 }
 
-/* Fecha: icono de calendario de Figma en lugar del nativo */
+/* Fecha: icono de calendario de Figma en lugar del nativo.
+   iOS Safari da al control nativo un ancho mínimo propio que desborda la columna
+   y ensancha la página: se quita la apariencia nativa y se permite encoger. */
 .input--date {
   position: relative;
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+}
+.input--date::-webkit-date-and-time-value {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
 }
 .input--date::-webkit-calendar-picker-indicator {
   width: 20px;
@@ -1388,4 +1400,19 @@ input:checked + .radio-mark::after {
   width: 1px;
   height: 1px;
   overflow: hidden;
+}
+
+/* Verificación de Cloudflare Turnstile (Figma 310:5975): sobre la barra de acciones.
+   Escritorio: widget normal (300 × 65) alineado a la izquierda; móvil: flexible al ancho. */
+.turnstile-slot {
+  margin-top: var(--spacing-16);
+  min-height: 65px;
+}
+.turnstile-slot:focus {
+  outline: none;
+}
+.btn.is-loading,
+.btn.is-loading[aria-disabled="true"] {
+  opacity: 1;
+  cursor: progress;
 }

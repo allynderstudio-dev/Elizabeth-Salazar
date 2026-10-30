@@ -81,3 +81,16 @@ test('la clave de Cal.com nunca aparece en respuestas', async (t) => {
   assert.equal(res.status, 502);
   assert.ok(!text.includes(fake.apiKey));
 });
+
+test('T-OB-03: reservas_desactivadas en producción se registra como error en cada consulta; /api/health lo muestra', async () => {
+  const { service } = setup({ service: { store: null } });
+  service.environment = 'production';
+  const errors = [];
+  const handler = availability.createHandler(() => service, { error: (m) => errors.push(m) });
+  const res = { setHeader() {}, end(b) { this.body = JSON.parse(b); } };
+  for (let i = 0; i < 2; i += 1) await handler({ method: 'GET', query: { servicio: 'embarazo', paquete: 'estudio', mes: '2026-11' }, headers: {} }, res);
+  assert.deepEqual(res.body, { reservable: false, motivo: 'reservas_desactivadas' });
+  assert.equal(errors.length, 2);
+  await require('../api/health.js').createHandler(() => service)({ method: 'GET', headers: {} }, res);
+  assert.deepEqual(res.body, { modo: 'production', reservas: 'whatsapp', almacen: 'ninguno' });
+});

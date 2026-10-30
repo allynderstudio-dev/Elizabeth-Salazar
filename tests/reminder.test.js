@@ -82,3 +82,18 @@ test('T-RM-03: el correo va solo a Ely; sin configuración, solo al registro', a
   assert.deepEqual(mails[0].body.to, ['ely@example.com']);
   assert.ok(!JSON.stringify(mails[0].body.to).includes('+58'), 'nunca al cliente');
 });
+
+test('T-OB-03: producción sin reservas en línea → el correo diario avisa del incidente aunque no haya pendientes', async () => {
+  const { service } = setup({ service: { store: null } });
+  service.environment = 'production';
+  let got = null;
+  const handler = createHandler(() => service, { CRON_SECRET: 's', TURNSTILE_SECRET_KEY: 'x', TURNSTILE_SITE_KEY: 'y' }, { sendReminder: async (p, env, f, opts) => { got = opts; return { canal: 'registro' }; } });
+  const res = { setHeader() {}, end(b) { this.body = JSON.parse(b); } };
+  const error = console.error;
+  console.error = () => {};
+  try { await handler({ method: 'GET', headers: { authorization: 'Bearer s' } }, res); } finally { console.error = error; }
+  assert.equal(res.statusCode, 200);
+  assert.equal(got.incidents.length, 1);
+  assert.match(got.incidents[0], /DESACTIVADAS/);
+  assert.match(reminderText([], got), /avisar a Dylan/);
+});

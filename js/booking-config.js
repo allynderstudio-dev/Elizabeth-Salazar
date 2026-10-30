@@ -38,6 +38,12 @@
     countryCodes: ['+58', '+57'],
 
     storageKey: 'ely-reserva-borrador',
+
+    // Cloudflare Turnstile: la clave de SITIO llega del servidor con la disponibilidad
+    // (TURNSTILE_SITE_KEY en Vercel, junto a TURNSTILE_SECRET_KEY). Esta solo la sustituye en
+    // pruebas locales: '1x00000000000000000000AA' (siempre pasa) o '3x00000000000000000000FF'
+    // (pide interacción), con la secreta de prueba correspondiente en el servidor.
+    turnstileSiteKey: '',
   };
 
   if (typeof window !== 'undefined') window.BOOKING_CONFIG = BOOKING_CONFIG;

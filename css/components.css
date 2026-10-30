@@ -363,6 +363,23 @@ a.contact-link:hover span {
 .service-card:hover .photo img {
   transform: scale(1.02);
 }
+/* Toda la tarjeta (foto incluida) abre su enlace "Ver sesión": un solo enlace por tarjeta */
+.service-card {
+  position: relative;
+  cursor: pointer;
+}
+.service-card__footer .btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.service-card:hover .service-card__footer .btn span {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.service-card:hover .service-card__footer .btn img[src*='arrow-right'] {
+  transform: translateX(3px);
+}
 
 /* Service Card · Layout=Horizontal (categoría con un solo servicio) */
 .service-card--horizontal {

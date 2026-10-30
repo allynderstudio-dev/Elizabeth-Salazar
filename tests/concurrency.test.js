@@ -125,8 +125,10 @@ test('T-DB-13 (simulado): una solicitud enviada bloquea su bloque para cualquier
   const out = await a.createBooking(request({ referencia: 'ref-servicio-a-0001', hora: '08:00', fecha: '2026-11-20' }));
   assert.equal(out.estado, 'pendiente');
   assert.equal(fake.bookings.length, 1);
-  // 3–4. Otro servicio, otra instancia: las 08:00 ya no se ofrecen
-  // (enforce:false: Cal.com simulado NO las quita; aquí debe hacerlo Cal.com real con la pendiente)
+  // 3–4. Otro servicio, otra instancia: las 08:00 ya no se ofrecen, aunque /v2/slots las siga
+  // devolviendo (enforce:false): el sitio descuenta las reservas activas
+  const d = await b.getAvailability({ servicio: 'newborn', paquete: 'sesion-newborn', mes: '2026-11' });
+  assert.deepEqual(d.dias['2026-11-20'], ['10:00', '14:00', '16:00']);
   // 5–6. Una solicitud directa del servicio B a las 08:00 → slot_taken
   await assert.rejects(b.createBooking(newbornRequest({ referencia: 'ref-servicio-b-0001', hora: '08:00', fecha: '2026-11-20' })), (err) => err.code === 'slot_taken');
   // 7. Exactamente una reserva activa
@@ -138,4 +140,33 @@ test('T-DB-13: con Cal.com que descuenta pendientes, el otro servicio ya no ve e
   await instance().createBooking(request({ referencia: 'ref-servicio-a-0002', hora: '08:00', fecha: '2026-11-20' }));
   const d = await instance().getAvailability({ servicio: 'newborn', paquete: 'sesion-newborn', mes: '2026-11' });
   assert.deepEqual(d.dias['2026-11-20'], ['10:00', '14:00', '16:00']);
+});
+
+test('Disponibilidad: las pendientes se descuentan aunque la lista sin filtro no las incluya', async () => {
+  const { instance, fake } = setup({ events: ALL_120, enforce: false });
+  await instance().createBooking(request({ referencia: 'ref-servicio-a-0003', hora: '10:00', fecha: '2026-11-20' }));
+  // Peor caso de T-DB-12: GET /v2/bookings sin estado devuelve la lista vacía
+  fake.quirks.unfilteredListOmitsPending = true;
+  const d = await instance().getAvailability({ servicio: 'familiar', paquete: 'sesion-familiar', mes: '2026-11' });
+  assert.deepEqual(d.dias['2026-11-20'], ['08:00', '14:00', '16:00']);
+  // …la creación también la ve como choque, y un reintento de A la reutiliza
+  const again = await instance().createBooking(request({ referencia: 'ref-servicio-a-0003', hora: '10:00', fecha: '2026-11-20' }));
+  assert.equal(again.reutilizada, true);
+  await assert.rejects(instance().createBooking(newbornRequest({ referencia: 'ref-servicio-b-0003', hora: '10:00', fecha: '2026-11-20' })), (err) => err.code === 'slot_taken');
+});
+
+test('Disponibilidad: rechazadas y canceladas no ocultan el horario', async () => {
+  const { instance, fake } = setup({ events: ALL_120, enforce: false });
+  const a = await instance().createBooking(request({ referencia: 'ref-servicio-a-0004', hora: '08:00', fecha: '2026-11-20' }));
+  const c = await instance().createBooking(request({ referencia: 'ref-servicio-a-0005', hora: '10:00', fecha: '2026-11-20' }));
+  fake.setStatus(a.uid, 'rejected');
+  fake.setStatus(c.uid, 'cancelled');
+  const d = await instance().getAvailability({ servicio: 'newborn', paquete: 'sesion-newborn', mes: '2026-11' });
+  assert.deepEqual(d.dias['2026-11-20'], ['08:00', '10:00', '14:00', '16:00']);
+});
+
+test('Disponibilidad: si la lista de reservas falla, no se ofrece ningún día', async () => {
+  const { service, fake } = setup({ events: ALL_120 });
+  fake.inject({ method: 'GET', path: /^\/v2\/bookings$/, kind: 'network' });
+  await assert.rejects(service.getAvailability({ servicio: 'embarazo', paquete: 'estudio', mes: '2026-11' }), (err) => err.kind === 'network');
 });

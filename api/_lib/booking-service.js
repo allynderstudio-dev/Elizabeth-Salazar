@@ -104,7 +104,19 @@ function createBookingService({
     if (!event || !online) return { reservable: false, motivo: event ? 'reservas_desactivadas' : 'sin_evento' };
     const first = minDate().slice(0, 7);
     if (mes < first || mes > maxMonth()) return { reservable: true, duracionMinutos: event.durationMinutes, dias: {} };
-    const dias = await freeSlots(event, `${mes}-01`, T.lastDayOfMonth(mes));
+    const from = `${mes}-01`;
+    const to = T.lastDayOfMonth(mes);
+    const [free, active] = await Promise.all([freeSlots(event, from, to), activeBookings(from, to)]);
+    // Se descuentan las reservas activas de CUALQUIER paquete: no depende de que /v2/slots
+    // oculte las pendientes (solo está verificado para las aceptadas)
+    const dias = {};
+    Object.entries(free).forEach(([date, times]) => {
+      const left = times.filter((time) => {
+        const start = T.localToUtc(date, time, tz).getTime();
+        return !active.some((b) => collides(b, start, start + event.durationMinutes * 6e4));
+      });
+      if (left.length) dias[date] = left;
+    });
     return { reservable: true, duracionMinutos: event.durationMinutes, dias };
   }
 
@@ -223,15 +235,33 @@ function createBookingService({
   const ACTIVE = new Set(['pending', 'accepted']);
   const bookingEventId = (b) => (b.eventType && b.eventType.id) || b.eventTypeId;
 
+  // Reservas activas (pendientes o aceptadas) que cumplen los filtros. Se piden también las
+  // 'unconfirmed' por separado: que la lista sin filtro de estado incluya las pendientes no está
+  // verificado contra la API real (T-DB-12), y así no depende de ello.
+  async function listActive(filters) {
+    const lists = await Promise.all([cal.listBookings(filters), cal.listBookings({ ...filters, status: 'unconfirmed' })]);
+    const byUid = new Map();
+    lists.flat().forEach((b) => { if (b && ACTIVE.has(b.status)) byUid.set(b.uid, b); });
+    return [...byUid.values()];
+  }
+
+  // Reservas activas de todos los eventos del sitio entre dos fechas locales (inclusive)
+  const activeBookings = (fromDate, toDate) => listActive({
+    eventTypeIds: siteEventIds.join(','),
+    afterStart: T.localToUtc(fromDate, '00:00', tz).toISOString(),
+    beforeEnd: T.localToUtc(T.addDays(toDate, 1), '00:00', tz).toISOString(),
+  });
+  const collides = (b, start, end) => Date.parse(b.start) < end && start < Date.parse(b.end);
+
   // Busca en Cal.com una reserva ya creada con esta referencia (reintentos y respuestas inciertas)
   async function findByRef(v) {
     const end = new Date(v.startUtc.getTime() + v.event.durationMinutes * 6e4);
-    const list = await cal.listBookings({
+    const list = await listActive({
       eventTypeId: v.event.eventTypeId,
       afterStart: new Date(v.startUtc.getTime() - 6e4).toISOString(),
       beforeEnd: new Date(end.getTime() + 6e4).toISOString(),
     });
-    return list.find((b) => b && b.metadata && b.metadata.ref === v.ref && b.metadata.whatsapp === v.phone && ACTIVE.has(b.status)) || null;
+    return list.find((b) => b.metadata && b.metadata.ref === v.ref && b.metadata.whatsapp === v.phone) || null;
   }
 
   // Comprueba que el identificador devuelto existe en Cal.com y corresponde a esta solicitud
@@ -302,16 +332,9 @@ function createBookingService({
   // Reservas activas (pendientes o aceptadas) de cualquier paquete del sitio que se solapen
   // con el bloque pedido. Las rechazadas y canceladas no cuentan.
   async function overlapping(v) {
-    const dayStart = T.localToUtc(v.date, '00:00', tz);
-    const dayEnd = T.localToUtc(T.addDays(v.date, 1), '00:00', tz);
-    const list = await cal.listBookings({
-      eventTypeIds: siteEventIds.join(','),
-      afterStart: dayStart.toISOString(),
-      beforeEnd: dayEnd.toISOString(),
-    });
     const start = v.startUtc.getTime();
     const end = start + v.event.durationMinutes * 6e4;
-    return list.filter((b) => b && ACTIVE.has(b.status) && Date.parse(b.start) < end && start < Date.parse(b.end));
+    return (await activeBookings(v.date, v.date)).filter((b) => collides(b, start, end));
   }
 
   async function doCreate(v) {

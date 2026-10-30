@@ -10,6 +10,8 @@ const VERSIONS = { slots: '2024-09-04', booking: '2026-02-25', list: '2026-05-01
 // del calendario conectado [{ start, end }] que /v2/slots descuenta (BR-16).
 function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'), apiKey = 'cal_test_key', pageSize = 100, enforce = true, latencyMs = 0 } = {}) {
   const calendarBusy = [];
+  // Comportamientos de la API real aún sin verificar que se pueden simular (T-DB-12)
+  const quirks = { unfilteredListOmitsPending: false };
   const bookings = [];
   const calls = [];
   const faults = [];
@@ -81,6 +83,7 @@ function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'),
     if (q.get('eventTypeId')) out = out.filter((b) => b.eventTypeId === Number(q.get('eventTypeId')));
     if (q.get('eventTypeIds')) { const ids = q.get('eventTypeIds').split(',').map(Number); out = out.filter((b) => ids.includes(b.eventTypeId)); }
     if (q.get('status') === 'unconfirmed') out = out.filter((b) => b.status === 'pending' && Date.parse(b.end) > now());
+    if (!q.get('status') && quirks.unfilteredListOmitsPending) out = out.filter((b) => b.status !== 'pending');
     if (q.get('afterStart')) out = out.filter((b) => Date.parse(b.start) >= Date.parse(q.get('afterStart')));
     if (q.get('beforeEnd')) out = out.filter((b) => Date.parse(b.end) <= Date.parse(q.get('beforeEnd')));
     const offset = Number(q.get('cursor') || 0);
@@ -143,7 +146,7 @@ function createFakeCal({ events, now = () => Date.parse('2026-11-02T12:00:00Z'),
     return error(404, 'Not found');
   }
 
-  return { fetch, bookings, calls, inject, apiKey, setStatus, calendarBusy };
+  return { fetch, bookings, calls, inject, apiKey, setStatus, calendarBusy, quirks };
 }
 
 module.exports = { createFakeCal };
