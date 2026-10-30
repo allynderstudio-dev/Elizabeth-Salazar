@@ -1,0 +1,15 @@
+{
+  "name": "Ely Salazar Photography",
+  "short_name": "Ely Salazar",
+  "description": "Estudio de fotografía en Táriba, Táchira, Venezuela.",
+  "lang": "es-VE",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "theme_color": "#f5f3ef",
+  "background_color": "#f5f3ef",
+  "icons": [
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

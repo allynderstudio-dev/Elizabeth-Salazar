@@ -22,7 +22,7 @@ for page in sorted(ROOT.glob('*.html')):
             url = part.strip().split(' ')[0]
             if not url or url.startswith(('#', 'http', 'mailto:', 'tel:', 'data:', 'javascript:')) or '${' in url:
                 continue
-            if not re.search(r'\.(html|css|js|svg|jpe?g|png|webp|woff2)', url):
+            if not re.search(r'\.(html|css|js|svg|jpe?g|png|webp|woff2|ico|webmanifest)', url):
                 continue
             path = ROOT / urlparse(url).path
             if not path.exists():

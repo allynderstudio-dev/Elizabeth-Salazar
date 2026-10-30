@@ -84,7 +84,9 @@ python3 tools/check-links.py
 
 Vercel, desde GitHub: cada push a `main` publica el sitio estático y las funciones de `api/`. No hay paso de build. Otros hosts estáticos sirven las páginas, pero sin `/api` las reservas en línea no funcionan (ver "Reservas con Cal.com").
 
-Antes de publicar, cambia las rutas de `og:image` por URLs absolutas del dominio final.
+Dominio de producción: `https://www.elysalazarstudio.com` (`elysalazarstudio.com` redirige al `www`). Las etiquetas `og:url`, `og:image` y `twitter:image` usan URLs absolutas de ese dominio; si cambia, actualízalas en todas las páginas y en `tools/page-template.html`.
+
+Íconos y vista previa al compartir (exportados del Figma, sección «Brand Assets — Digital»): `favicon.svg` (cambia a crema en modo oscuro), `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png` y `site.webmanifest` en la raíz; la imagen para redes es `assets/images/og-image.jpg` (1200×630). No los redibujes: si cambian, vuelve a exportarlos desde Figma.
 
 ## Matriz de estado
 
